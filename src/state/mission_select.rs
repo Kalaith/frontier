@@ -1,7 +1,7 @@
 //! Mission selection state - choose which mission to embark on
 
 use macroquad::prelude::*;
-use crate::kingdom::Roster;
+use crate::kingdom::{Roster, Party, PartyMemberState};
 use crate::missions::{Mission, load_missions};
 use super::{StateTransition, MissionState};
 
@@ -9,27 +9,46 @@ use super::{StateTransition, MissionState};
 pub struct MissionSelectState {
     pub missions: Vec<Mission>,
     pub selected_mission: usize,
-    pub adventurer_name: String,
-    pub adventurer_id: String,
-    pub adventurer_hp: i32,
-    pub adventurer_max_hp: i32,
-    pub adventurer_stress: i32,
-    pub adventurer_image: Option<String>,
+    /// Party members going on this mission (leader is first)
+    pub party_members: Vec<PartyMemberState>,
 }
 
 impl MissionSelectState {
-    /// Create mission select with a pre-selected adventurer
+    /// Create mission select with a pre-selected adventurer (backwards compatible, single-person party)
     pub fn new(adventurer_id: String, adventurer_name: String, hp: i32, max_hp: i32, stress: i32, image: Option<String>) -> Self {
+        let member = PartyMemberState {
+            id: adventurer_id,
+            name: adventurer_name,
+            hp,
+            max_hp,
+            stress,
+            image_path: image,
+        };
         Self {
             missions: load_missions(),
             selected_mission: 0,
-            adventurer_name,
-            adventurer_id,
-            adventurer_hp: hp,
-            adventurer_max_hp: max_hp,
-            adventurer_stress: stress,
-            adventurer_image: image,
+            party_members: vec![member],
         }
+    }
+    
+    /// Create mission select from a party and roster
+    pub fn for_party(party: Party, roster: &Roster) -> Self {
+        let party_members: Vec<PartyMemberState> = party.member_ids
+            .iter()
+            .filter_map(|id| roster.get(id))
+            .map(|adv| PartyMemberState::from_adventurer(adv))
+            .collect();
+        
+        Self {
+            missions: load_missions(),
+            selected_mission: 0,
+            party_members,
+        }
+    }
+    
+    /// Get the party leader's info
+    pub fn leader(&self) -> Option<&PartyMemberState> {
+        self.party_members.first()
     }
     
     pub fn update(&mut self, _roster: &Roster) -> Option<StateTransition> {
@@ -68,16 +87,14 @@ impl MissionSelectState {
         // Confirm mission with Enter
         if is_key_pressed(KeyCode::Enter) {
             if let Some(mission) = self.missions.get(self.selected_mission) {
-                let mission_state = MissionState::from_mission_with_stats(
-                    mission.clone(),
-                    self.adventurer_id.clone(),
-                    self.adventurer_name.clone(),
-                    self.adventurer_hp,
-                    self.adventurer_max_hp,
-                    self.adventurer_stress,
-                    self.adventurer_image.clone(),
-                );
-                return Some(StateTransition::ToMission(mission_state));
+                // Use leader's stats for primary mission state
+                if let Some(leader) = self.leader() {
+                    let mission_state = MissionState::from_mission_with_party(
+                        mission.clone(),
+                        self.party_members.clone(),
+                    );
+                    return Some(StateTransition::ToMission(mission_state));
+                }
             }
         }
         
@@ -91,25 +108,53 @@ impl MissionSelectState {
     
     pub fn draw(&self, textures: &std::collections::HashMap<String, Texture2D>) {
         draw_text("SELECT MISSION", 20.0, 40.0, 32.0, WHITE);
-        draw_text(&format!("Adventurer: {}", self.adventurer_name), 20.0, 75.0, 20.0, SKYBLUE);
-        draw_text(
-            &format!("HP: {}/{}  Stress: {}", self.adventurer_hp, self.adventurer_max_hp, self.adventurer_stress),
-            300.0, 75.0, 18.0, GREEN
-        );
         
-        // Adventurer image
-        if let Some(path) = &self.adventurer_image {
-            if let Some(tex) = textures.get(path) {
-                draw_texture_ex(
-                    tex,
-                    650.0, 20.0,
-                    WHITE,
-                    DrawTextureParams {
-                        dest_size: Some(vec2(100.0, 100.0)),
-                        ..Default::default()
-                    }
-                );
+        // Show party members
+        let party_label = if self.party_members.len() == 1 {
+            format!("Adventurer: {}", self.party_members.first().map(|m| m.name.as_str()).unwrap_or("?"))
+        } else {
+            format!("Party ({} members):", self.party_members.len())
+        };
+        draw_text(&party_label, 20.0, 75.0, 20.0, SKYBLUE);
+        
+        // Draw party member portraits and info
+        let portrait_size = 60.0;
+        let portrait_gap = 10.0;
+        let portrait_start_x = 200.0;
+        
+        for (i, member) in self.party_members.iter().enumerate() {
+            let x = portrait_start_x + (i as f32 * (portrait_size + portrait_gap + 80.0));
+            
+            // Portrait
+            if let Some(path) = &member.image_path {
+                if let Some(tex) = textures.get(path) {
+                    draw_texture_ex(
+                        tex,
+                        x, 55.0,
+                        WHITE,
+                        DrawTextureParams {
+                            dest_size: Some(vec2(portrait_size, portrait_size)),
+                            ..Default::default()
+                        }
+                    );
+                }
             }
+            
+            // Leader indicator
+            if i == 0 {
+                draw_text("★", x + portrait_size - 15.0, 68.0, 16.0, YELLOW);
+            }
+            
+            // Name and HP below portrait
+            draw_text(&member.name, x + portrait_size + 5.0, 75.0, 14.0, WHITE);
+            draw_text(
+                &format!("HP:{}/{}", member.hp, member.max_hp),
+                x + portrait_size + 5.0, 90.0, 12.0, GREEN
+            );
+            draw_text(
+                &format!("Str:{}", member.stress),
+                x + portrait_size + 5.0, 104.0, 12.0, ORANGE
+            );
         }
         
         let start_y = 120.0;

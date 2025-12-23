@@ -13,7 +13,7 @@ mod recruit;
 pub use base::BaseState;
 pub use mission::MissionState;
 pub use mission_select::MissionSelectState;
-pub use combat::{CombatState, MissionContext};
+pub use combat::CombatState;
 pub use results::ResultState;
 pub use event::EventState;
 pub use recruit::RecruitState;

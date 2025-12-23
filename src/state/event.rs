@@ -3,7 +3,9 @@
 use macroquad::prelude::*;
 use std::collections::HashMap;
 use crate::missions::events::{Event, EventOutcome};
-use super::StateTransition;
+use crate::kingdom::PartyMemberState;
+use crate::missions::Mission;
+use super::{StateTransition, MissionState};
 
 /// State for handling mission events
 pub struct EventState {
@@ -19,6 +21,16 @@ pub struct EventState {
     pub knowledge_change: i32,
     pub trigger_combat: Option<String>,
     pub skip_node: bool,
+    /// Mission context to return to
+    pub mission_context: Option<MissionReturnContext>,
+}
+
+/// Context for returning to mission after event
+#[derive(Clone)]
+pub struct MissionReturnContext {
+    pub mission: Mission,
+    pub current_node: usize,
+    pub party_members: Vec<PartyMemberState>,
 }
 
 impl EventState {
@@ -35,13 +47,32 @@ impl EventState {
             knowledge_change: 0,
             trigger_combat: None,
             skip_node: false,
+            mission_context: None,
         }
     }
     
+    /// Create event with mission context for returning
+    pub fn with_mission_context(mut self, mission: Mission, current_node: usize, party_members: Vec<PartyMemberState>) -> Self {
+        self.mission_context = Some(MissionReturnContext {
+            mission,
+            current_node,
+            party_members,
+        });
+        self
+    }
+    
     pub fn update(&mut self) -> Option<StateTransition> {
+        // Choice layout constants (must match draw)
+        let panel_x = 100.0;
+        let panel_y = 80.0;
+        let panel_w = screen_width() - 200.0;
+        let choices_y = panel_y + 200.0;
+        let choice_height = 45.0;
+        
         // Choice selection
         let choice_count = self.event.choices.len();
         
+        // Keyboard navigation
         if is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W) {
             if self.selected_choice > 0 {
                 self.selected_choice -= 1;
@@ -53,7 +84,7 @@ impl EventState {
             }
         }
         
-        // Number keys
+        // Number keys and mouse clicks
         for i in 0..choice_count.min(9) {
             let key = match i {
                 0 => KeyCode::Key1,
@@ -63,39 +94,72 @@ impl EventState {
                 4 => KeyCode::Key5,
                 _ => continue,
             };
+            
+            // Keyboard
             if is_key_pressed(key) {
                 self.selected_choice = i;
             }
-        }
-        
-        // Confirm choice
-        if is_key_pressed(KeyCode::Enter) {
-            if let Some(choice) = self.event.choices.get(self.selected_choice) {
-                // Process outcomes
-                for outcome in &choice.outcomes {
-                    match outcome {
-                        EventOutcome::Stress(amt) => self.stress_change += amt,
-                        EventOutcome::Heal(amt) => self.hp_change += amt,
-                        EventOutcome::Supplies(amt) => self.supplies_change += amt,
-                        EventOutcome::Knowledge(amt) => self.knowledge_change += amt,
-                        EventOutcome::Combat(enemy_id) => {
-                            self.trigger_combat = Some(enemy_id.clone());
-                        }
-                        EventOutcome::SkipNode => self.skip_node = true,
-                        EventOutcome::RevealTrait => {
-                            self.knowledge_change += 5;
-                        }
-                        EventOutcome::Nothing => {}
-                    }
+            
+            // Mouse click on choice
+            let choice_y = choices_y + 35.0 + (i as f32 * 50.0) - 15.0;
+            if crate::ui::was_clicked(panel_x + 20.0, choice_y, panel_w - 40.0, choice_height) {
+                if self.selected_choice == i {
+                    // Click on selected = confirm
+                    return self.confirm_choice();
+                } else {
+                    self.selected_choice = i;
                 }
-                self.return_to_mission = true;
-                
-                // For now, return to base after event
-                // TODO: Return to mission state with outcomes applied
-                return Some(StateTransition::ToBase);
             }
         }
         
+        // Confirm choice with Enter
+        if is_key_pressed(KeyCode::Enter) {
+            return self.confirm_choice();
+        }
+        
+        None
+    }
+    
+    /// Confirm the currently selected choice and return transition
+    fn confirm_choice(&mut self) -> Option<StateTransition> {
+        if let Some(choice) = self.event.choices.get(self.selected_choice) {
+            // Process outcomes
+            for outcome in &choice.outcomes {
+                match outcome {
+                    EventOutcome::Stress(amt) => self.stress_change += amt,
+                    EventOutcome::Heal(amt) => self.hp_change += amt,
+                    EventOutcome::Supplies(amt) => self.supplies_change += amt,
+                    EventOutcome::Knowledge(amt) => self.knowledge_change += amt,
+                    EventOutcome::Combat(enemy_id) => {
+                        self.trigger_combat = Some(enemy_id.clone());
+                    }
+                    EventOutcome::SkipNode => self.skip_node = true,
+                    EventOutcome::RevealTrait => {
+                        self.knowledge_change += 5;
+                    }
+                    EventOutcome::Nothing => {}
+                }
+            }
+            self.return_to_mission = true;
+            
+            // Return to mission if we have context, otherwise go to base
+            if let Some(ctx) = &self.mission_context {
+                // Apply HP/stress changes to party members
+                let mut updated_members = ctx.party_members.clone();
+                for member in &mut updated_members {
+                    member.hp = (member.hp + self.hp_change).min(member.max_hp).max(0);
+                    member.stress = (member.stress + self.stress_change).min(100).max(0);
+                }
+                
+                let mission_state = MissionState::from_mission_with_party(
+                    ctx.mission.clone(),
+                    updated_members,
+                ).with_node(ctx.current_node);
+                return Some(StateTransition::ToMission(mission_state));
+            } else {
+                return Some(StateTransition::ToBase);
+            }
+        }
         None
     }
     
@@ -149,18 +213,25 @@ impl EventState {
         
         for (i, choice) in self.event.choices.iter().enumerate() {
             let y = choices_y + 35.0 + (i as f32 * 50.0);
+            let choice_y = y - 15.0;
+            let choice_h = 45.0;
             let is_selected = i == self.selected_choice;
+            let is_hovered = crate::ui::is_mouse_over(panel_x + 20.0, choice_y, panel_w - 40.0, choice_h);
             
-            // Choice background
+            // Choice background with hover
             let bg_color = if is_selected {
                 Color::from_rgba(60, 80, 60, 255)
+            } else if is_hovered {
+                Color::from_rgba(50, 55, 60, 255)
             } else {
                 Color::from_rgba(40, 40, 50, 255)
             };
-            draw_rectangle(panel_x + 20.0, y - 15.0, panel_w - 40.0, 45.0, bg_color);
+            draw_rectangle(panel_x + 20.0, choice_y, panel_w - 40.0, choice_h, bg_color);
             
             if is_selected {
-                draw_rectangle_lines(panel_x + 20.0, y - 15.0, panel_w - 40.0, 45.0, 2.0, GREEN);
+                draw_rectangle_lines(panel_x + 20.0, choice_y, panel_w - 40.0, choice_h, 2.0, GREEN);
+            } else if is_hovered {
+                draw_rectangle_lines(panel_x + 20.0, choice_y, panel_w - 40.0, choice_h, 1.0, LIGHTGRAY);
             }
             
             // Choice text
@@ -169,6 +240,6 @@ impl EventState {
         }
         
         // Instructions
-        draw_text("[↑/↓] Select  [ENTER] Confirm", panel_x + 20.0, panel_y + panel_h - 30.0, 18.0, GREEN);
+        draw_text("Click choice to select, click again to confirm • Or use [↑/↓] and [ENTER]", panel_x + 20.0, panel_y + panel_h - 30.0, 16.0, GREEN);
     }
 }

@@ -4,11 +4,15 @@ use macroquad::prelude::*;
 use super::{StateTransition, ResultState, MissionState};
 use crate::combat::{Unit, Card, CombatResolver};
 use crate::missions::Mission;
+use crate::kingdom::PartyMemberState;
 use crate::data::random_enemy_for_difficulty;
 
-/// Turn-based combat state
+/// Turn-based combat state with party support
 pub struct CombatState {
-    pub player: Unit,
+    /// All player units (party members)
+    pub players: Vec<Unit>,
+    /// Index of the currently active player
+    pub current_player_idx: usize,
     pub enemy: Unit,
     pub hand: Vec<Card>,
     pub energy: i32,
@@ -16,12 +20,11 @@ pub struct CombatState {
     pub turn: usize,
     pub selected_card: Option<usize>,
     pub resolver: CombatResolver,
-    pub adventurer_id: String,
     /// Mission to return to after combat victory
     pub return_mission: Option<MissionContext>,
-    /// Track damage/stress for applying to adventurer after combat
-    pub damage_taken: i32,
-    pub stress_gained: i32,
+    /// Track damage/stress per player for applying after combat
+    pub damage_taken: Vec<i32>,
+    pub stress_gained: Vec<i32>,
 }
 
 /// Context needed to return to a mission after combat
@@ -29,18 +32,21 @@ pub struct CombatState {
 pub struct MissionContext {
     pub mission: Mission,
     pub current_node: usize,
-    pub adventurer_id: String,
-    pub adventurer_name: String,
-    pub adventurer_hp: i32,
-    pub adventurer_max_hp: i32,
-    pub adventurer_stress: i32,
-    pub adventurer_image: Option<String>,
+    pub party_members: Vec<PartyMemberState>,
+}
+
+impl MissionContext {
+    /// Get the leader
+    pub fn leader(&self) -> Option<&PartyMemberState> {
+        self.party_members.first()
+    }
 }
 
 impl Default for CombatState {
     fn default() -> Self {
         Self {
-            player: Unit::new_player("Adventurer", 50),
+            players: vec![Unit::new_player("Adventurer", 50)],
+            current_player_idx: 0,
             enemy: Unit::new_enemy("Forest Beast", 30, None),
             hand: Card::starter_hand(),
             energy: 3,
@@ -48,48 +54,67 @@ impl Default for CombatState {
             turn: 1,
             selected_card: None,
             resolver: CombatResolver::new(),
-            adventurer_id: String::new(),
             return_mission: None,
-            damage_taken: 0,
-            stress_gained: 0,
+            damage_taken: vec![0],
+            stress_gained: vec![0],
         }
     }
 }
 
 impl CombatState {
-    /// Create combat state for a specific adventurer
+    /// Get the currently active player
+    pub fn current_player(&self) -> Option<&Unit> {
+        self.players.get(self.current_player_idx)
+    }
+    
+    /// Get the currently active player mutably
+    pub fn current_player_mut(&mut self) -> Option<&mut Unit> {
+        self.players.get_mut(self.current_player_idx)
+    }
+    
+    /// Create combat state for a specific adventurer (backwards compat)
     pub fn for_adventurer(adventurer_id: &str, adventurer_name: &str) -> Self {
+        let mut player = Unit::new_player(adventurer_name, 50);
         Self {
-            player: Unit::new_player(adventurer_name, 50),
-            adventurer_id: adventurer_id.to_string(),
+            players: vec![player],
             ..Default::default()
         }
     }
     
-    /// Create combat that returns to mission on victory, using real adventurer stats
+    /// Create combat that returns to mission on victory, using party stats
     pub fn for_mission(context: MissionContext) -> Self {
-        // Use adventurer's actual HP
-        let mut player = Unit::new_player(&context.adventurer_name, context.adventurer_max_hp);
-        player.hp = context.adventurer_hp;
-        player.stress = context.adventurer_stress;
-        player.image_path = context.adventurer_image.clone();
+        // Create Unit for each party member
+        let players: Vec<Unit> = context.party_members.iter().map(|m| {
+            let mut unit = Unit::new_player(&m.name, m.max_hp);
+            unit.hp = m.hp;
+            unit.stress = m.stress;
+            unit.image_path = m.image_path.clone();
+            unit
+        }).collect();
+        
+        let party_size = players.len();
         
         // Get random enemy based on mission difficulty
         let enemy = random_enemy_for_difficulty(context.mission.difficulty);
         
         Self {
-            player,
+            players,
+            current_player_idx: 0,
             enemy,
-            adventurer_id: context.adventurer_id.clone(),
             return_mission: Some(context),
-            damage_taken: 0,
-            stress_gained: 0,
+            damage_taken: vec![0; party_size],
+            stress_gained: vec![0; party_size],
             ..Default::default()
         }
     }
     
     pub fn update(&mut self) -> Option<StateTransition> {
-        // Card selection with number keys
+        // Card layout constants (must match draw)
+        let card_y = screen_height() - 250.0;
+        let card_width = 140.0;
+        let card_height = 160.0;
+        
+        // Card selection with number keys OR mouse click
         for i in 0..self.hand.len().min(5) {
             let key = match i {
                 0 => KeyCode::Key1,
@@ -100,34 +125,36 @@ impl CombatState {
                 _ => continue,
             };
             
+            // Keyboard selection
             if is_key_pressed(key) {
                 self.selected_card = Some(i);
+            }
+            
+            // Mouse click on card
+            let card_x = 20.0 + (i as f32 * (card_width + 10.0));
+            if crate::ui::was_clicked(card_x, card_y, card_width, card_height) {
+                if self.selected_card == Some(i) {
+                    // Clicking already selected card = play it
+                    self.try_play_selected_card();
+                } else {
+                    self.selected_card = Some(i);
+                }
             }
         }
         
         // Play selected card with Enter
         if is_key_pressed(KeyCode::Enter) {
-            if let Some(card_idx) = self.selected_card {
-                if card_idx < self.hand.len() {
-                    let card = &self.hand[card_idx];
-                    if card.cost <= self.energy {
-                        // Resolve card effects
-                        let effects = card.effects.clone();
-                        self.energy -= card.cost;
-                        
-                        for effect in effects {
-                            self.resolver.resolve(&effect, &mut self.player, &mut self.enemy);
-                        }
-                        
-                        self.hand.remove(card_idx);
-                        self.selected_card = None;
-                    }
-                }
-            }
+            self.try_play_selected_card();
         }
         
-        // End turn with E
+        // End turn with E key or button click (button drawn in draw())
         if is_key_pressed(KeyCode::E) {
+            self.end_turn();
+        }
+        // End Turn button bounds
+        let end_btn_x = screen_width() - 150.0;
+        let end_btn_y = screen_height() - 60.0;
+        if crate::ui::was_clicked(end_btn_x, end_btn_y, 130.0, 40.0) {
             self.end_turn();
         }
         
@@ -135,62 +162,128 @@ impl CombatState {
         if self.enemy.hp <= 0 {
             // Victory - return to mission if we came from one
             if let Some(ctx) = &self.return_mission {
-                // Create updated context with current HP/stress
-                let mut updated_ctx = ctx.clone();
-                updated_ctx.adventurer_hp = self.player.hp;
-                updated_ctx.adventurer_stress = self.player.stress;
+                // Update party member states with current HP/stress
+                let updated_members: Vec<PartyMemberState> = self.players.iter().map(|p| {
+                    PartyMemberState {
+                        id: ctx.party_members.iter().find(|m| m.name == p.name).map(|m| m.id.clone()).unwrap_or_default(),
+                        name: p.name.clone(),
+                        hp: p.hp,
+                        max_hp: p.max_hp,
+                        stress: p.stress,
+                        image_path: p.image_path.clone(),
+                    }
+                }).collect();
                 
-                let mission_state = MissionState::from_mission_with_stats(
-                    updated_ctx.mission.clone(),
-                    updated_ctx.adventurer_id.clone(),
-                    updated_ctx.adventurer_name.clone(),
-                    updated_ctx.adventurer_hp,
-                    updated_ctx.adventurer_max_hp,
-                    updated_ctx.adventurer_stress,
-                    updated_ctx.adventurer_image.clone(),
+                let mission_state = MissionState::from_mission_with_party(
+                    ctx.mission.clone(),
+                    updated_members,
                 ).with_node(ctx.current_node);
                 return Some(StateTransition::ToMission(mission_state));
             } else {
-                return Some(StateTransition::ToResults(ResultState::victory_for(&self.adventurer_id)));
+                // Not from mission - just show simple victory
+                let leader_id = self.players.first().map(|p| p.name.as_str()).unwrap_or("");
+                return Some(StateTransition::ToResults(ResultState::victory_for(leader_id)));
             }
         }
-        if self.player.hp <= 0 {
+        
+        // Check if all players are dead
+        let all_dead = self.players.iter().all(|p| p.hp <= 0);
+        if all_dead {
             // Defeat - always go to results
-            let mut results = ResultState::defeat_for(&self.adventurer_id);
-            results.hp_lost = self.damage_taken;
-            results.stress_gained = self.stress_gained;
-            results.final_hp = Some(self.player.hp);
-            return Some(StateTransition::ToResults(results));
+            if let Some(ctx) = &self.return_mission {
+                let results = ResultState::defeat_for_party(&ctx.party_members);
+                return Some(StateTransition::ToResults(results));
+            } else {
+                let leader_id = self.players.first().map(|p| p.name.as_str()).unwrap_or("");
+                let results = ResultState::defeat_for(leader_id);
+                return Some(StateTransition::ToResults(results));
+            }
         }
         
         None
     }
     
+    /// Try to play the currently selected card
+    fn try_play_selected_card(&mut self) {
+        if let Some(card_idx) = self.selected_card {
+            if card_idx < self.hand.len() && self.current_player_idx < self.players.len() {
+                let card = &self.hand[card_idx];
+                
+                // Check if card can be played
+                let can_afford = card.cost <= self.energy;
+                let attack_blocked = card.is_attack() && self.resolver.turn_mods.attacks_disabled;
+                
+                if can_afford && !attack_blocked {
+                    // Resolve card effects
+                    let effects = card.effects.clone();
+                    self.energy -= card.cost;
+                    
+                    // Get active player reference
+                    let player = &mut self.players[self.current_player_idx];
+                    for effect in effects {
+                        self.resolver.resolve(&effect, player, &mut self.enemy);
+                    }
+                    
+                    self.hand.remove(card_idx);
+                    self.selected_card = None;
+                }
+            }
+        }
+    }
+    
     fn end_turn(&mut self) {
-        // Player status tick
-        self.player.tick_statuses();
-        self.player.block = 0;
+        // Current player status tick and block reset
+        if let Some(player) = self.players.get_mut(self.current_player_idx) {
+            player.tick_statuses();
+            player.block = 0;
+        }
         
         // Enemy Action
         let (dmg, stress) = self.enemy.execute_intent();
+        let enemy_acted = dmg > 0 || stress > 0;
         
-        // Apply damage to player
+        // Apply damage to current player
         if dmg > 0 {
-            let actual = self.player.take_damage(dmg);
-            self.damage_taken += actual;
+            if let Some(player) = self.players.get_mut(self.current_player_idx) {
+                let actual = player.take_damage(dmg);
+                if self.current_player_idx < self.damage_taken.len() {
+                    self.damage_taken[self.current_player_idx] += actual;
+                }
+            }
         }
         
-        self.player.add_stress(stress);
-        self.stress_gained += 2 + stress;
+        // Apply stress with resistance (uses resolver's turn mods)
+        let base_stress = 2 + stress;
+        if let Some(player) = self.players.get_mut(self.current_player_idx) {
+            self.resolver.apply_stress_to_player(player, base_stress);
+            if self.current_player_idx < self.stress_gained.len() {
+                self.stress_gained[self.current_player_idx] += base_stress;
+            }
+        }
         
         // Enemy status tick
         self.enemy.tick_statuses();
         self.enemy.block = 0;
         
+        // Reset turn modifiers and track enemy action for next turn
+        self.resolver.end_turn(enemy_acted);
+        
+        // Cycle to next living party member
+        if self.players.len() > 1 {
+            let start_idx = self.current_player_idx;
+            loop {
+                self.current_player_idx = (self.current_player_idx + 1) % self.players.len();
+                // Stop if alive or back to start
+                if self.players[self.current_player_idx].hp > 0 || self.current_player_idx == start_idx {
+                    break;
+                }
+            }
+        }
+        
         // Next Turn
         self.turn += 1;
         self.energy = self.max_energy;
-        self.hand = Card::starter_hand(); // TODO: Draw from Deck
+        self.hand = Card::starter_hand(); // Draws from JSON-loaded deck
         
         // Roll new enemy intent for next turn
         self.enemy.roll_intent(self.turn);
@@ -224,45 +317,63 @@ impl CombatState {
         draw_text("COMBAT", 20.0, 40.0, 28.0, RED);
         draw_text(&format!("Turn {}", self.turn), 20.0, 70.0, 20.0, YELLOW);
         
-        // Player stats
-        let player_y = 120.0;
-        draw_text(&self.player.name, 20.0, player_y, 22.0, WHITE);
-        draw_text(&format!("HP: {}/{}", self.player.hp, self.player.max_hp), 20.0, player_y + 25.0, 18.0, GREEN);
-        draw_text(&format!("Block: {}", self.player.block), 20.0, player_y + 45.0, 18.0, BLUE);
-        draw_text(&format!("Stress: {}", self.player.stress), 20.0, player_y + 65.0, 18.0, ORANGE);
-        
-        // Draw Player Statuses
-        let mut sx = 20.0;
-        let sy = player_y + 85.0; // Draw above image or over it? Let's verify space.
-        // Image is at player_y + 80? Wait, let's shift image down or draw statuses next to name.
-        // Let's draw statuses below stats.
-        for status in &self.player.statuses {
-             let color = match status.effect_type {
-                 crate::kingdom::StatusType::Vulnerable | crate::kingdom::StatusType::Weak | crate::kingdom::StatusType::Stun => RED,
-                 _ => GREEN,
-             };
-             let text = format!("{:?}({})", status.effect_type, status.duration);
-             draw_text(&text, sx, sy, 16.0, color);
-             sx += 100.0; // Spacing
+        // Party member portraits (if more than 1)
+        let portrait_y = 95.0;
+        let portrait_size = 50.0;
+        for (i, player) in self.players.iter().enumerate() {
+            let x = 20.0 + (i as f32 * (portrait_size + 10.0));
+            let is_active = i == self.current_player_idx;
+            
+            // Portrait border
+            let border_color = if is_active { YELLOW } else if player.hp <= 0 { RED } else { GRAY };
+            draw_rectangle_lines(x - 2.0, portrait_y - 2.0, portrait_size + 4.0, portrait_size + 4.0, 2.0, border_color);
+            
+            // Portrait
+            if let Some(path) = &player.image_path {
+                if let Some(tex) = textures.get(path) {
+                    let tint = if player.hp <= 0 { Color::from_rgba(100, 100, 100, 255) } else { WHITE };
+                    draw_texture_ex(
+                        tex,
+                        x, portrait_y,
+                        tint,
+                        DrawTextureParams {
+                            dest_size: Some(vec2(portrait_size, portrait_size)),
+                            ..Default::default()
+                        }
+                    );
+                }
+            }
+            
+            // HP bar under portrait
+            let hp_pct = (player.hp as f32 / player.max_hp as f32).max(0.0);
+            draw_rectangle(x, portrait_y + portrait_size + 2.0, portrait_size, 6.0, DARKGRAY);
+            draw_rectangle(x, portrait_y + portrait_size + 2.0, portrait_size * hp_pct, 6.0, GREEN);
         }
         
-        // Player image
-        if let Some(path) = &self.player.image_path {
-            if let Some(tex) = textures.get(path) {
-                draw_texture_ex(
-                    tex,
-                    20.0, player_y + 110.0, // Shifted down
-                    WHITE,
-                    DrawTextureParams {
-                        dest_size: Some(vec2(120.0, 120.0)),
-                        ..Default::default()
-                    }
-                );
+        // Current player stats (detailed)
+        let player_y = 180.0;
+        if let Some(player) = self.players.get(self.current_player_idx) {
+            draw_text(&format!("Active: {}", player.name), 20.0, player_y, 22.0, YELLOW);
+            draw_text(&format!("HP: {}/{}", player.hp, player.max_hp), 20.0, player_y + 25.0, 18.0, GREEN);
+            draw_text(&format!("Block: {}", player.block), 20.0, player_y + 45.0, 18.0, BLUE);
+            draw_text(&format!("Stress: {}", player.stress), 20.0, player_y + 65.0, 18.0, ORANGE);
+            
+            // Draw Player Statuses
+            let mut sx = 20.0;
+            let sy = player_y + 85.0;
+            for status in &player.statuses {
+                let color = match status.effect_type {
+                    crate::kingdom::StatusType::Vulnerable | crate::kingdom::StatusType::Weak | crate::kingdom::StatusType::Stun => RED,
+                    _ => GREEN,
+                };
+                let text = format!("{:?}({})", status.effect_type, status.duration);
+                draw_text(&text, sx, sy, 16.0, color);
+                sx += 100.0;
             }
         }
         
-        // Energy (moved below image to avoid overlap)
-        draw_text(&format!("Energy: {}/{}", self.energy, self.max_energy), 20.0, player_y + 240.0, 20.0, SKYBLUE);
+        // Energy
+        draw_text(&format!("Energy: {}/{}", self.energy, self.max_energy), 20.0, player_y + 105.0, 20.0, SKYBLUE);
         
         // Enemy stats
         let enemy_x = screen_width() - 200.0;
@@ -319,17 +430,29 @@ impl CombatState {
         for (i, card) in self.hand.iter().enumerate() {
             let x = 20.0 + (i as f32 * (card_width + 10.0));
             let is_selected = self.selected_card == Some(i);
-            let can_play = card.cost <= self.energy;
+            let is_hovered = crate::ui::is_mouse_over(x, card_y, card_width, card_height);
+            let can_afford = card.cost <= self.energy;
+            let attack_blocked = card.is_attack() && self.resolver.turn_mods.attacks_disabled;
+            let can_play = can_afford && !attack_blocked;
             
-            // Card background/border
+            // Card background/border - add hover glow
             let border_color = if is_selected {
-                YELLOW
+                if can_play { YELLOW } else { ORANGE }
+            } else if is_hovered && can_play {
+                Color::from_rgba(150, 255, 150, 255) // Green glow on hover
             } else if can_play {
                 WHITE
+            } else if attack_blocked {
+                PURPLE  // Visual cue for blocked attacks
             } else {
                 DARKGRAY
             };
-            draw_rectangle(x - 2.0, card_y - 2.0, card_width + 4.0, card_height + 4.0, border_color);
+            
+            // Draw slightly larger border if hovered
+            let border_thickness = if is_hovered || is_selected { 4.0 } else { 2.0 };
+            draw_rectangle(x - border_thickness, card_y - border_thickness, 
+                          card_width + border_thickness * 2.0, card_height + border_thickness * 2.0, 
+                          border_color);
             
             // Card image
             if let Some(path) = &card.image_path {
@@ -337,7 +460,7 @@ impl CombatState {
                     draw_texture_ex(
                         tex,
                         x, card_y,
-                        WHITE,
+                        if attack_blocked { Color::from_rgba(150, 100, 150, 255) } else { WHITE },
                         DrawTextureParams {
                             dest_size: Some(vec2(card_width, card_height - 40.0)),
                             ..Default::default()
@@ -358,13 +481,25 @@ impl CombatState {
             draw_rectangle(x, info_y, card_width, 40.0, Color::from_rgba(20, 20, 30, 240));
             
             // Card text
-            let text_color = WHITE;
+            let text_color = if attack_blocked { PURPLE } else { WHITE };
             draw_text(&format!("[{}] {}", i + 1, card.name), x + 5.0, info_y + 15.0, 14.0, text_color);
-            draw_text(&format!("Cost: {}", card.cost), x + 5.0, info_y + 32.0, 12.0, 
-                if can_play { GREEN } else { RED });
+            
+            // Cost and status
+            let status_text = if attack_blocked {
+                "BLOCKED"
+            } else {
+                &format!("Cost: {}", card.cost)
+            };
+            let status_color = if attack_blocked { PURPLE } else if can_afford { GREEN } else { RED };
+            draw_text(status_text, x + 5.0, info_y + 32.0, 12.0, status_color);
         }
         
+        // End Turn button
+        let end_btn_x = screen_width() - 150.0;
+        let end_btn_y = screen_height() - 60.0;
+        crate::ui::button("END TURN", end_btn_x, end_btn_y, 130.0, 40.0);
+        
         // Instructions
-        draw_text("[1-5] Select Card  [ENTER] Play  [E] End Turn", 20.0, screen_height() - 30.0, 18.0, GREEN);
+        draw_text("Click card to select, click again to play • Click END TURN or press [E]", 20.0, screen_height() - 30.0, 16.0, GREEN);
     }
 }

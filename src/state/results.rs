@@ -1,7 +1,7 @@
 //! Results state - post-mission consequences and resolution
 
 use macroquad::prelude::*;
-use crate::kingdom::{KingdomState, Roster};
+use crate::kingdom::{KingdomState, Roster, PartyMemberState};
 use super::StateTransition;
 
 /// Post-mission results state
@@ -12,6 +12,8 @@ pub struct ResultState {
     pub injuries: Vec<String>,
     pub rewards: Vec<String>,
     pub adventurer_id: String,
+    /// All party member IDs and their final states
+    pub party_member_states: Vec<PartyMemberState>,
     /// Final HP after mission (if set, overrides hp_lost calculation)
     pub final_hp: Option<i32>,
     /// Final stress after mission
@@ -33,6 +35,23 @@ impl ResultState {
             injuries: vec![],
             rewards: vec!["20 Gold".to_string(), "10 Supplies".to_string(), "+5 Knowledge".to_string()],
             adventurer_id: adventurer_id.to_string(),
+            party_member_states: vec![],
+            final_hp: None,
+            final_stress: None,
+        }
+    }
+    
+    /// Create victory result for a full party
+    pub fn victory_for_party(party_members: &[PartyMemberState]) -> Self {
+        let adventurer_id = party_members.first().map(|m| m.id.clone()).unwrap_or_default();
+        Self {
+            victory: true,
+            stress_gained: 5,
+            hp_lost: 0,
+            injuries: vec![],
+            rewards: vec!["20 Gold".to_string(), "10 Supplies".to_string(), "+5 Knowledge".to_string()],
+            adventurer_id,
+            party_member_states: party_members.to_vec(),
             final_hp: None,
             final_stress: None,
         }
@@ -46,6 +65,23 @@ impl ResultState {
             injuries: vec!["Wounded Leg".to_string()],
             rewards: vec![],
             adventurer_id: adventurer_id.to_string(),
+            party_member_states: vec![],
+            final_hp: None,
+            final_stress: None,
+        }
+    }
+    
+    /// Create defeat result for a full party
+    pub fn defeat_for_party(party_members: &[PartyMemberState]) -> Self {
+        let adventurer_id = party_members.first().map(|m| m.id.clone()).unwrap_or_default();
+        Self {
+            victory: false,
+            stress_gained: 15,
+            hp_lost: 20,
+            injuries: vec!["Wounded Leg".to_string()],
+            rewards: vec![],
+            adventurer_id,
+            party_member_states: party_members.to_vec(),
             final_hp: None,
             final_stress: None,
         }

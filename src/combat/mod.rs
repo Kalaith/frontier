@@ -8,6 +8,6 @@ mod effects;
 mod resolver;
 
 pub use unit::{Unit, EnemyIntent};
-pub use card::Card;
+pub use card::{Card, STARTER_DECK_IDS};
 pub use effects::CardEffect;
 pub use resolver::CombatResolver;

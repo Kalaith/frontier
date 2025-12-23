@@ -19,6 +19,8 @@ pub enum CardEffect {
     DamageIfNoBlock { base: i32, bonus: i32 },
     /// Conditional damage if HP below percentage
     DamageIfLowHp { base: i32, bonus: i32, threshold_percent: i32 },
+    /// Conditional damage if enemy acted last turn
+    DamageIfEnemyActed { base: i32, bonus: i32 },
     /// Apply a status effect
     ApplyStatus {
         effect_type: crate::kingdom::StatusType,
@@ -26,4 +28,8 @@ pub enum CardEffect {
         value: i32,
         target_self: bool, 
     },
+    /// Reduce incoming stress by percentage for this turn (e.g., 50 = 50%)
+    StressResistance(i32),
+    /// Disable playing attack cards for the rest of this turn
+    DisableAttacks,
 }

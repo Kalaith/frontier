@@ -46,6 +46,9 @@
     "effects": [
       {
         "Block": 3
+      },
+      {
+        "StressResistance": 50
       }
     ],
     "image_path": "assets/images/cards/brace.png"
@@ -96,7 +99,10 @@
     "description": "Deal 5 damage. +4 if enemy acted last turn.",
     "effects": [
       {
-        "Damage": 5
+        "DamageIfEnemyActed": {
+          "base": 5,
+          "bonus": 4
+        }
       }
     ],
     "image_path": "assets/images/cards/opportunistic_cut.png"
@@ -109,7 +115,8 @@
     "effects": [
       {
         "Block": 8
-      }
+      },
+      "DisableAttacks"
     ],
     "image_path": "assets/images/cards/hold_the_line.png"
   },

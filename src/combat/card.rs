@@ -3,6 +3,16 @@
 use serde::{Deserialize, Serialize};
 use super::CardEffect;
 
+/// IDs of cards in the starter deck (drawn from JSON data)
+pub const STARTER_DECK_IDS: &[&str] = &[
+    "strike",
+    "strike",
+    "guard", 
+    "guard",
+    "desperate_swing",
+    "recenter",
+];
+
 /// A playable card
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Card {
@@ -16,8 +26,47 @@ pub struct Card {
 }
 
 impl Card {
-    /// Generate the starter hand of cards
+    /// Check if this card is an attack (deals damage)
+    pub fn is_attack(&self) -> bool {
+        self.effects.iter().any(|e| matches!(e, 
+            CardEffect::Damage(_) | 
+            CardEffect::DamageIfNoBlock { .. } | 
+            CardEffect::DamageIfLowHp { .. } |
+            CardEffect::DamageIfEnemyActed { .. }
+        ))
+    }
+    
+    /// Load the starter hand from JSON data
+    /// Returns a hand of 5 cards drawn from starter deck
     pub fn starter_hand() -> Vec<Card> {
+        Self::load_starter_deck()
+            .into_iter()
+            .take(5)
+            .collect()
+    }
+    
+    /// Load full starter deck from JSON
+    pub fn load_starter_deck() -> Vec<Card> {
+        match crate::data::cards::CardData::load_all() {
+            Ok(all_cards) => {
+                STARTER_DECK_IDS
+                    .iter()
+                    .filter_map(|id| {
+                        all_cards.iter()
+                            .find(|c| c.id == *id)
+                            .map(|c| c.to_card())
+                    })
+                    .collect()
+            }
+            Err(e) => {
+                eprintln!("Failed to load cards from JSON: {}. Using fallback.", e);
+                Self::fallback_starter_hand()
+            }
+        }
+    }
+    
+    /// Fallback hand if JSON loading fails
+    fn fallback_starter_hand() -> Vec<Card> {
         vec![
             Card {
                 id: "strike".to_string(),
@@ -34,30 +83,6 @@ impl Card {
                 description: "Gain 5 Block".to_string(),
                 effects: vec![CardEffect::Block(5)],
                 image_path: Some("assets/images/cards/guard.png".to_string()),
-            },
-            Card {
-                id: "desperate_swing".to_string(),
-                name: "Desperate Swing".to_string(),
-                cost: 0,
-                description: "Deal 5 dmg, +5 Stress".to_string(),
-                effects: vec![CardEffect::Damage(5), CardEffect::SelfStress(5)],
-                image_path: Some("assets/images/cards/desperate_swing.png".to_string()),
-            },
-            Card {
-                id: "recenter".to_string(),
-                name: "Recenter".to_string(),
-                cost: 1,
-                description: "Reduce Stress by 6".to_string(),
-                effects: vec![CardEffect::ReduceStress(6)],
-                image_path: Some("assets/images/cards/recenter.png".to_string()),
-            },
-            Card {
-                id: "measured_strike".to_string(),
-                name: "Measured Strike".to_string(),
-                cost: 2,
-                description: "Deal 10 damage".to_string(),
-                effects: vec![CardEffect::Damage(10)],
-                image_path: Some("assets/images/cards/measured_strike.png".to_string()),
             },
         ]
     }

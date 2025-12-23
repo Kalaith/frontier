@@ -1,7 +1,6 @@
 //! Adventurer - persistent characters that remember
 
 use serde::{Deserialize, Serialize};
-use crate::combat::Card;
 
 /// An adventurer in the kingdom's roster
 #[derive(Clone, Debug, Serialize, Deserialize)]
