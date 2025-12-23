@@ -11,6 +11,8 @@ pub struct CardData {
     pub cost: i32,
     pub description: String,
     pub effects: Vec<CardEffect>,
+    #[serde(default)]
+    pub image_path: Option<String>,
 }
 
 impl CardData {
@@ -27,6 +29,7 @@ impl CardData {
             cost: self.cost,
             description: self.description.clone(),
             effects: self.effects.clone(),
+            image_path: self.image_path.clone(),
         }
     }
 }

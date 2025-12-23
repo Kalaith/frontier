@@ -1,0 +1,52 @@
+[
+    {
+        "id": "strike",
+        "title": "strike",
+        "description": "Dark fantasy card game illustration, a warrior delivering a powerful sword strike, motion blur, steel blade glinting, dramatic lighting, painterly style, muted earth tones with orange highlights, card art, centered composition, no text, high detail"
+    },
+    {
+        "id": "guard",
+        "title": "guard",
+        "description": "Dark fantasy card game illustration, a warrior raising a worn shield in defensive stance, bracing for impact, dramatic lighting, painterly style, muted earth tones with blue highlights, card art, centered composition, no text, high detail"
+    },
+    {
+        "id": "focused_blow",
+        "title": "focused_blow",
+        "description": "Dark fantasy card game illustration, a warrior in focused concentration delivering precise thrust attack, glowing eyes, intense focus, dramatic lighting, painterly style, muted earth tones with golden highlights, card art, centered composition, no text, high detail"
+    },
+    {
+        "id": "brace",
+        "title": "brace",
+        "description": "Dark fantasy card game illustration, a warrior bracing themselves with crossed arms and shield, stoic expression, preparing for impact, dramatic lighting, painterly style, muted earth tones with steel blue highlights, card art, centered composition, no text, high detail"
+    },
+    {
+        "id": "desperate_swing",
+        "title": "desperate_swing",
+        "description": "Dark fantasy card game illustration, a frantic warrior mid-swing with wild desperate expression, uncontrolled power, stress visible on face, dramatic lighting, painterly style, muted earth tones with red stress highlights, card art, centered composition, no text, high detail"
+    },
+    {
+        "id": "measured_strike",
+        "title": "measured_strike",
+        "description": "Dark fantasy card game illustration, a disciplined warrior delivering calculated heavy overhead strike, perfect form, controlled power, dramatic lighting, painterly style, muted earth tones with white highlights, card art, centered composition, no text, high detail"
+    },
+    {
+        "id": "recenter",
+        "title": "recenter",
+        "description": "Dark fantasy card game illustration, a warrior in meditation pose, eyes closed, calming breath, stress fading away as wisps, serene moment, dramatic lighting, painterly style, muted earth tones with soft green highlights, card art, centered composition, no text, high detail"
+    },
+    {
+        "id": "opportunistic_cut",
+        "title": "opportunistic_cut",
+        "description": "Dark fantasy card game illustration, a cunning warrior striking from behind enemy, opportunistic attack, quick slash, dramatic lighting, painterly style, muted earth tones with yellow highlights, card art, centered composition, no text, high detail"
+    },
+    {
+        "id": "hold_the_line",
+        "title": "hold_the_line",
+        "description": "Dark fantasy card game illustration, a resolute warrior standing firm with massive shield planted, immovable stance, absolute defense, dramatic lighting, painterly style, muted earth tones with silver highlights, card art, centered composition, no text, high detail"
+    },
+    {
+        "id": "last_ditch_effort",
+        "title": "last_ditch_effort",
+        "description": "Dark fantasy card game illustration, a wounded bloodied warrior making final desperate attack with all remaining strength, gritted teeth, last stand, dramatic lighting, painterly style, muted earth tones with crimson red highlights, card art, centered composition, no text, high detail"
+    }
+]

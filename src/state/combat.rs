@@ -4,6 +4,7 @@ use macroquad::prelude::*;
 use super::{StateTransition, ResultState, MissionState};
 use crate::combat::{Unit, Card, CombatResolver};
 use crate::missions::Mission;
+use crate::data::random_enemy_for_difficulty;
 
 /// Turn-based combat state
 pub struct CombatState {
@@ -18,6 +19,9 @@ pub struct CombatState {
     pub adventurer_id: String,
     /// Mission to return to after combat victory
     pub return_mission: Option<MissionContext>,
+    /// Track damage/stress for applying to adventurer after combat
+    pub damage_taken: i32,
+    pub stress_gained: i32,
 }
 
 /// Context needed to return to a mission after combat
@@ -27,13 +31,17 @@ pub struct MissionContext {
     pub current_node: usize,
     pub adventurer_id: String,
     pub adventurer_name: String,
+    pub adventurer_hp: i32,
+    pub adventurer_max_hp: i32,
+    pub adventurer_stress: i32,
+    pub adventurer_image: Option<String>,
 }
 
 impl Default for CombatState {
     fn default() -> Self {
         Self {
             player: Unit::new_player("Adventurer", 50),
-            enemy: Unit::new_enemy("Forest Beast", 30),
+            enemy: Unit::new_enemy("Forest Beast", 30, None),
             hand: Card::starter_hand(),
             energy: 3,
             max_energy: 3,
@@ -42,6 +50,8 @@ impl Default for CombatState {
             resolver: CombatResolver::new(),
             adventurer_id: String::new(),
             return_mission: None,
+            damage_taken: 0,
+            stress_gained: 0,
         }
     }
 }
@@ -56,12 +66,24 @@ impl CombatState {
         }
     }
     
-    /// Create combat that returns to mission on victory
+    /// Create combat that returns to mission on victory, using real adventurer stats
     pub fn for_mission(context: MissionContext) -> Self {
+        // Use adventurer's actual HP
+        let mut player = Unit::new_player(&context.adventurer_name, context.adventurer_max_hp);
+        player.hp = context.adventurer_hp;
+        player.stress = context.adventurer_stress;
+        player.image_path = context.adventurer_image.clone();
+        
+        // Get random enemy based on mission difficulty
+        let enemy = random_enemy_for_difficulty(context.mission.difficulty);
+        
         Self {
-            player: Unit::new_player(&context.adventurer_name, 50),
+            player,
+            enemy,
             adventurer_id: context.adventurer_id.clone(),
             return_mission: Some(context),
+            damage_taken: 0,
+            stress_gained: 0,
             ..Default::default()
         }
     }
@@ -113,10 +135,19 @@ impl CombatState {
         if self.enemy.hp <= 0 {
             // Victory - return to mission if we came from one
             if let Some(ctx) = &self.return_mission {
-                let mission_state = MissionState::from_mission(
-                    ctx.mission.clone(),
-                    ctx.adventurer_id.clone(),
-                    ctx.adventurer_name.clone(),
+                // Create updated context with current HP/stress
+                let mut updated_ctx = ctx.clone();
+                updated_ctx.adventurer_hp = self.player.hp;
+                updated_ctx.adventurer_stress = self.player.stress;
+                
+                let mission_state = MissionState::from_mission_with_stats(
+                    updated_ctx.mission.clone(),
+                    updated_ctx.adventurer_id.clone(),
+                    updated_ctx.adventurer_name.clone(),
+                    updated_ctx.adventurer_hp,
+                    updated_ctx.adventurer_max_hp,
+                    updated_ctx.adventurer_stress,
+                    updated_ctx.adventurer_image.clone(),
                 ).with_node(ctx.current_node);
                 return Some(StateTransition::ToMission(mission_state));
             } else {
@@ -125,27 +156,64 @@ impl CombatState {
         }
         if self.player.hp <= 0 {
             // Defeat - always go to results
-            return Some(StateTransition::ToResults(ResultState::defeat_for(&self.adventurer_id)));
+            let mut results = ResultState::defeat_for(&self.adventurer_id);
+            results.hp_lost = self.damage_taken;
+            results.stress_gained = self.stress_gained;
+            results.final_hp = Some(self.player.hp);
+            return Some(StateTransition::ToResults(results));
         }
         
         None
     }
     
     fn end_turn(&mut self) {
-        // Enemy attacks
-        let enemy_damage = 5 + (self.turn as i32);
-        let actual_damage = (enemy_damage - self.player.block).max(0);
-        self.player.hp -= actual_damage;
-        self.player.stress += 2;
+        // Enemy executes their intent
+        let (damage, stress) = self.enemy.execute_intent();
+        
+        if damage > 0 {
+            let actual_damage = (damage - self.player.block).max(0);
+            self.player.hp -= actual_damage;
+            self.damage_taken += actual_damage;
+        }
+        
+        self.player.stress += 2 + stress;
+        self.stress_gained += 2 + stress;
         
         // Reset for next turn
         self.player.block = 0;
+        self.enemy.block = 0;
         self.turn += 1;
         self.energy = self.max_energy;
-        self.hand = Card::starter_hand(); // Redraw hand
+        self.hand = Card::starter_hand();
+        
+        // Roll new enemy intent for next turn
+        self.enemy.roll_intent(self.turn);
     }
     
-    pub fn draw(&self) {
+    pub fn draw(&self, textures: &std::collections::HashMap<String, Texture2D>) {
+        // Draw background
+        let region_id = if let Some(ctx) = &self.return_mission {
+            &ctx.mission.region_id
+        } else {
+            "dark_woods"
+        };
+        
+        let bg_path = format!("assets/images/regions/{}.png", region_id);
+        if let Some(tex) = textures.get(&bg_path) {
+            draw_texture_ex(
+                tex,
+                0.0, 0.0,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(screen_width(), screen_height())),
+                    ..Default::default()
+                }
+            );
+            
+            // Dark overlay for readability
+            draw_rectangle(0.0, 0.0, screen_width(), screen_height(), Color::from_rgba(0, 0, 0, 180));
+        }
+        
         // Combat header
         draw_text("COMBAT", 20.0, 40.0, 28.0, RED);
         draw_text(&format!("Turn {}", self.turn), 20.0, 70.0, 20.0, YELLOW);
@@ -157,41 +225,107 @@ impl CombatState {
         draw_text(&format!("Block: {}", self.player.block), 20.0, player_y + 45.0, 18.0, BLUE);
         draw_text(&format!("Stress: {}", self.player.stress), 20.0, player_y + 65.0, 18.0, ORANGE);
         
+        // Player image
+        if let Some(path) = &self.player.image_path {
+            if let Some(tex) = textures.get(path) {
+                draw_texture_ex(
+                    tex,
+                    20.0, player_y + 80.0,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(vec2(120.0, 120.0)),
+                        ..Default::default()
+                    }
+                );
+            }
+        }
+        
+        // Energy (moved below image to avoid overlap)
+        draw_text(&format!("Energy: {}/{}", self.energy, self.max_energy), 20.0, player_y + 220.0, 20.0, SKYBLUE);
+        
         // Enemy stats
         let enemy_x = screen_width() - 200.0;
         draw_text(&self.enemy.name, enemy_x, player_y, 22.0, RED);
         draw_text(&format!("HP: {}/{}", self.enemy.hp, self.enemy.max_hp), enemy_x, player_y + 25.0, 18.0, GREEN);
         draw_text(&format!("Block: {}", self.enemy.block), enemy_x, player_y + 45.0, 18.0, BLUE);
         
-        // Energy
-        draw_text(&format!("Energy: {}/{}", self.energy, self.max_energy), 20.0, player_y + 100.0, 20.0, SKYBLUE);
+        // Enemy intent - shows what they'll do next
+        let intent_color = match &self.enemy.intent {
+            crate::combat::EnemyIntent::Attack(_) => RED,
+            crate::combat::EnemyIntent::Block(_) => BLUE,
+            crate::combat::EnemyIntent::Buff => YELLOW,
+            crate::combat::EnemyIntent::Debuff => PURPLE,
+            crate::combat::EnemyIntent::Unknown => GRAY,
+        };
+        draw_text(&format!("Intent: {}", self.enemy.intent.description()), enemy_x, player_y + 65.0, 16.0, intent_color);
+        
+        // Enemy image
+        if let Some(path) = &self.enemy.image_path {
+            if let Some(tex) = textures.get(path) {
+                draw_texture_ex(
+                    tex,
+                    enemy_x, player_y + 85.0,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(vec2(120.0, 120.0)),
+                        ..Default::default()
+                    }
+                );
+            }
+        }
+        
         
         // Hand of cards
-        let card_y = screen_height() - 180.0;
-        let card_width = 150.0;
-        let card_height = 120.0;
+        let card_y = screen_height() - 250.0;
+        let card_width = 140.0;
+        let card_height = 160.0;
         
         for (i, card) in self.hand.iter().enumerate() {
             let x = 20.0 + (i as f32 * (card_width + 10.0));
             let is_selected = self.selected_card == Some(i);
             let can_play = card.cost <= self.energy;
             
-            // Card background
-            let bg_color = if is_selected {
+            // Card background/border
+            let border_color = if is_selected {
                 YELLOW
             } else if can_play {
-                Color::from_rgba(60, 60, 80, 255)
+                WHITE
             } else {
-                Color::from_rgba(40, 40, 50, 255)
+                DARKGRAY
             };
-            draw_rectangle(x, card_y, card_width, card_height, bg_color);
+            draw_rectangle(x - 2.0, card_y - 2.0, card_width + 4.0, card_height + 4.0, border_color);
             
-            // Card content
-            let text_color = if is_selected { BLACK } else { WHITE };
-            draw_text(&format!("[{}]", i + 1), x + 5.0, card_y + 20.0, 16.0, text_color);
-            draw_text(&card.name, x + 5.0, card_y + 45.0, 16.0, text_color);
-            draw_text(&format!("Cost: {}", card.cost), x + 5.0, card_y + 65.0, 14.0, text_color);
-            draw_text(&card.description, x + 5.0, card_y + 85.0, 12.0, text_color);
+            // Card image
+            if let Some(path) = &card.image_path {
+                if let Some(tex) = textures.get(path) {
+                    draw_texture_ex(
+                        tex,
+                        x, card_y,
+                        WHITE,
+                        DrawTextureParams {
+                            dest_size: Some(vec2(card_width, card_height - 40.0)),
+                            ..Default::default()
+                        }
+                    );
+                } else {
+                    // Fallback: draw colored rectangle
+                    let bg_color = Color::from_rgba(60, 60, 80, 255);
+                    draw_rectangle(x, card_y, card_width, card_height - 40.0, bg_color);
+                }
+            } else {
+                let bg_color = Color::from_rgba(60, 60, 80, 255);
+                draw_rectangle(x, card_y, card_width, card_height - 40.0, bg_color);
+            }
+            
+            // Card info bar at bottom
+            let info_y = card_y + card_height - 40.0;
+            draw_rectangle(x, info_y, card_width, 40.0, Color::from_rgba(20, 20, 30, 240));
+            
+            // Card text
+            let text_color = WHITE;
+            draw_text(&format!("[{}] {}", i + 1, card.name), x + 5.0, info_y + 15.0, 14.0, text_color);
+            draw_text(&format!("Cost: {}", card.cost), x + 5.0, info_y + 32.0, 12.0, 
+                if can_play { GREEN } else { RED });
         }
         
         // Instructions

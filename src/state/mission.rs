@@ -11,6 +11,10 @@ pub struct MissionState {
     pub current_node: usize,
     pub adventurer_id: String,
     pub adventurer_name: String,
+    pub adventurer_hp: i32,
+    pub adventurer_max_hp: i32,
+    pub adventurer_stress: i32,
+    pub adventurer_image: Option<String>,
 }
 
 impl Default for MissionState {
@@ -20,27 +24,58 @@ impl Default for MissionState {
             current_node: 0,
             adventurer_id: String::new(),
             adventurer_name: "Unknown".to_string(),
+            adventurer_hp: 50,
+            adventurer_max_hp: 50,
+            adventurer_stress: 0,
+            adventurer_image: None,
         }
     }
 }
 
 impl MissionState {
     /// Create a new mission with the given adventurer (simple version)
-    pub fn new(adventurer_id: String, adventurer_name: String) -> Self {
+    pub fn new(adventurer_id: String, adventurer_name: String, adventurer_image: Option<String>) -> Self {
         Self {
             adventurer_id,
             adventurer_name,
+            adventurer_image,
             ..Default::default()
         }
     }
     
     /// Create from a Mission object with adventurer info
-    pub fn from_mission(mission: Mission, adventurer_id: String, adventurer_name: String) -> Self {
+    pub fn from_mission(mission: Mission, adventurer_id: String, adventurer_name: String, image: Option<String>) -> Self {
         Self {
             mission,
             current_node: 0,
             adventurer_id,
             adventurer_name,
+            adventurer_hp: 50,
+            adventurer_max_hp: 50,
+            adventurer_stress: 0,
+            adventurer_image: image,
+        }
+    }
+    
+    /// Create from a Mission object with full adventurer stats
+    pub fn from_mission_with_stats(
+        mission: Mission,
+        adventurer_id: String,
+        adventurer_name: String,
+        hp: i32,
+        max_hp: i32,
+        stress: i32,
+        image: Option<String>,
+    ) -> Self {
+        Self {
+            mission,
+            current_node: 0,
+            adventurer_id,
+            adventurer_name,
+            adventurer_hp: hp,
+            adventurer_max_hp: max_hp,
+            adventurer_stress: stress,
+            adventurer_image: image,
         }
     }
     
@@ -63,19 +98,38 @@ impl MissionState {
                     format!("+{} Supplies", self.mission.reward_supplies),
                     format!("+{} Knowledge", self.mission.reward_knowledge),
                 ];
+                // Pass final HP/stress to results
+                results.final_hp = Some(self.adventurer_hp);
+                results.final_stress = Some(self.adventurer_stress);
                 return Some(StateTransition::ToResults(results));
             }
             
-            // Check for encounter at this node (odd nodes have encounters)
+            // Odd nodes = combat encounters
             if self.current_node % 2 == 1 {
                 let context = MissionContext {
                     mission: self.mission.clone(),
                     current_node: self.current_node,
                     adventurer_id: self.adventurer_id.clone(),
                     adventurer_name: self.adventurer_name.clone(),
+                    adventurer_hp: self.adventurer_hp,
+                    adventurer_max_hp: self.adventurer_max_hp,
+                    adventurer_stress: self.adventurer_stress,
+                    adventurer_image: self.adventurer_image.clone(),
                 };
                 let combat = CombatState::for_mission(context);
                 return Some(StateTransition::ToCombat(combat));
+            }
+            
+            // Even nodes (except 0) = events
+            if self.current_node > 0 && self.current_node % 2 == 0 {
+                if let Some(event) = crate::missions::events::random_event(self.current_node, &self.mission.region_id) {
+                    let event_state = super::EventState::new(
+                        event,
+                        self.adventurer_id.clone(),
+                        self.adventurer_name.clone(),
+                    );
+                    return Some(StateTransition::ToEvent(event_state));
+                }
             }
         }
         
@@ -87,10 +141,49 @@ impl MissionState {
         None
     }
     
-    pub fn draw(&self) {
+    pub fn draw(&self, textures: &std::collections::HashMap<String, Texture2D>) {
+        // Draw background
+        let bg_path = format!("assets/images/regions/{}.png", self.mission.region_id);
+        if let Some(tex) = textures.get(&bg_path) {
+            draw_texture_ex(
+                tex,
+                0.0, 0.0,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(screen_width(), screen_height())),
+                    ..Default::default()
+                }
+            );
+            
+            // Dark overlay for readability
+            draw_rectangle(0.0, 0.0, screen_width(), screen_height(), Color::from_rgba(0, 0, 0, 150));
+        }
+
         draw_text(&format!("MISSION: {}", self.mission.name), 20.0, 40.0, 28.0, WHITE);
         draw_text(&format!("{:?} Mission", self.mission.mission_type), 20.0, 70.0, 18.0, GRAY);
         draw_text(&format!("Adventurer: {}", self.adventurer_name), 20.0, 95.0, 20.0, SKYBLUE);
+        
+        // Adventurer image
+        if let Some(path) = &self.adventurer_image {
+            if let Some(tex) = textures.get(path) {
+                draw_texture_ex(
+                    tex,
+                    650.0, 20.0,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(vec2(100.0, 100.0)),
+                        ..Default::default()
+                    }
+                );
+            }
+        }
+        
+        // Show current adventurer status
+        draw_text(
+            &format!("HP: {}/{}  Stress: {}", self.adventurer_hp, self.adventurer_max_hp, self.adventurer_stress),
+            300.0, 95.0, 18.0, 
+            if self.adventurer_hp < self.adventurer_max_hp / 2 { RED } else { GREEN }
+        );
         
         // Draw progress
         let progress = format!("Node {}/{}", self.current_node + 1, self.mission.length);

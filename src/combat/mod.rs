@@ -7,7 +7,7 @@ mod card;
 mod effects;
 mod resolver;
 
-pub use unit::Unit;
+pub use unit::{Unit, EnemyIntent};
 pub use card::Card;
 pub use effects::CardEffect;
 pub use resolver::CombatResolver;

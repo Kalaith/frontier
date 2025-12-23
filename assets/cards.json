@@ -4,63 +4,114 @@
     "name": "Strike",
     "cost": 1,
     "description": "Deal 6 damage. Baseline reference card.",
-    "effects": [{ "Damage": 6 }]
+    "effects": [
+      {
+        "Damage": 6
+      }
+    ],
+    "image_path": "assets/images/cards/strike.png"
   },
   {
     "id": "guard",
     "name": "Guard",
     "cost": 1,
     "description": "Gain 5 Block. Basic survival pacing.",
-    "effects": [{ "Block": 5 }]
+    "effects": [
+      {
+        "Block": 5
+      }
+    ],
+    "image_path": "assets/images/cards/guard.png"
   },
   {
     "id": "focused_blow",
     "name": "Focused Blow",
     "cost": 1,
     "description": "Deal 4 damage. If target has no Block, deal +3.",
-    "effects": [{ "DamageIfNoBlock": { "base": 4, "bonus": 3 } }]
+    "effects": [
+      {
+        "DamageIfNoBlock": {
+          "base": 4,
+          "bonus": 3
+        }
+      }
+    ],
+    "image_path": "assets/images/cards/focused_blow.png"
   },
   {
     "id": "brace",
     "name": "Brace",
     "cost": 1,
     "description": "Gain 3 Block. Reduce incoming Stress 50% this turn.",
-    "effects": [{ "Block": 3 }]
+    "effects": [
+      {
+        "Block": 3
+      }
+    ],
+    "image_path": "assets/images/cards/brace.png"
   },
   {
     "id": "desperate_swing",
     "name": "Desperate Swing",
     "cost": 0,
     "description": "Deal 5 damage. Gain 5 Stress.",
-    "effects": [{ "Damage": 5 }, { "SelfStress": 5 }]
+    "effects": [
+      {
+        "Damage": 5
+      },
+      {
+        "SelfStress": 5
+      }
+    ],
+    "image_path": "assets/images/cards/desperate_swing.png"
   },
   {
     "id": "measured_strike",
     "name": "Measured Strike",
     "cost": 2,
     "description": "Deal 10 damage. Tempo control.",
-    "effects": [{ "Damage": 10 }]
+    "effects": [
+      {
+        "Damage": 10
+      }
+    ],
+    "image_path": "assets/images/cards/measured_strike.png"
   },
   {
     "id": "recenter",
     "name": "Recenter",
     "cost": 1,
     "description": "Reduce Stress by 6.",
-    "effects": [{ "ReduceStress": 6 }]
+    "effects": [
+      {
+        "ReduceStress": 6
+      }
+    ],
+    "image_path": "assets/images/cards/recenter.png"
   },
   {
     "id": "opportunistic_cut",
     "name": "Opportunistic Cut",
     "cost": 1,
     "description": "Deal 5 damage. +4 if enemy acted last turn.",
-    "effects": [{ "Damage": 5 }]
+    "effects": [
+      {
+        "Damage": 5
+      }
+    ],
+    "image_path": "assets/images/cards/opportunistic_cut.png"
   },
   {
     "id": "hold_the_line",
     "name": "Hold the Line",
     "cost": 2,
     "description": "Gain 8 Block. Cannot play Attacks this turn.",
-    "effects": [{ "Block": 8 }]
+    "effects": [
+      {
+        "Block": 8
+      }
+    ],
+    "image_path": "assets/images/cards/hold_the_line.png"
   },
   {
     "id": "last_ditch_effort",
@@ -68,8 +119,17 @@
     "cost": 1,
     "description": "Deal 8 damage. +6 if HP below 30%. Gain 3 Stress.",
     "effects": [
-      { "DamageIfLowHp": { "base": 8, "bonus": 6, "threshold_percent": 30 } },
-      { "SelfStress": 3 }
-    ]
+      {
+        "DamageIfLowHp": {
+          "base": 8,
+          "bonus": 6,
+          "threshold_percent": 30
+        }
+      },
+      {
+        "SelfStress": 3
+      }
+    ],
+    "image_path": "assets/images/cards/last_ditch_effort.png"
   }
 ]

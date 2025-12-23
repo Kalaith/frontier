@@ -10,7 +10,7 @@ pub mod cards;
 pub mod enemies;
 
 pub use cards::CardData;
-pub use enemies::EnemyData;
+pub use enemies::{EnemyData, random_enemy_for_difficulty};
 
 /// Load any JSON data file into a deserializable type
 pub fn load_json<T: DeserializeOwned>(path: &str) -> Result<T, String> {

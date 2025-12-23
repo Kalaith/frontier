@@ -9,20 +9,26 @@ use super::{StateTransition, MissionState};
 pub struct MissionSelectState {
     pub missions: Vec<Mission>,
     pub selected_mission: usize,
-    pub selected_adventurer: Option<usize>,
     pub adventurer_name: String,
     pub adventurer_id: String,
+    pub adventurer_hp: i32,
+    pub adventurer_max_hp: i32,
+    pub adventurer_stress: i32,
+    pub adventurer_image: Option<String>,
 }
 
 impl MissionSelectState {
     /// Create mission select with a pre-selected adventurer
-    pub fn new(adventurer_id: String, adventurer_name: String) -> Self {
+    pub fn new(adventurer_id: String, adventurer_name: String, hp: i32, max_hp: i32, stress: i32, image: Option<String>) -> Self {
         Self {
             missions: load_missions(),
             selected_mission: 0,
-            selected_adventurer: None,
             adventurer_name,
             adventurer_id,
+            adventurer_hp: hp,
+            adventurer_max_hp: max_hp,
+            adventurer_stress: stress,
+            adventurer_image: image,
         }
     }
     
@@ -62,10 +68,14 @@ impl MissionSelectState {
         // Confirm mission with Enter
         if is_key_pressed(KeyCode::Enter) {
             if let Some(mission) = self.missions.get(self.selected_mission) {
-                let mission_state = MissionState::from_mission(
+                let mission_state = MissionState::from_mission_with_stats(
                     mission.clone(),
                     self.adventurer_id.clone(),
                     self.adventurer_name.clone(),
+                    self.adventurer_hp,
+                    self.adventurer_max_hp,
+                    self.adventurer_stress,
+                    self.adventurer_image.clone(),
                 );
                 return Some(StateTransition::ToMission(mission_state));
             }
@@ -79,9 +89,28 @@ impl MissionSelectState {
         None
     }
     
-    pub fn draw(&self) {
+    pub fn draw(&self, textures: &std::collections::HashMap<String, Texture2D>) {
         draw_text("SELECT MISSION", 20.0, 40.0, 32.0, WHITE);
         draw_text(&format!("Adventurer: {}", self.adventurer_name), 20.0, 75.0, 20.0, SKYBLUE);
+        draw_text(
+            &format!("HP: {}/{}  Stress: {}", self.adventurer_hp, self.adventurer_max_hp, self.adventurer_stress),
+            300.0, 75.0, 18.0, GREEN
+        );
+        
+        // Adventurer image
+        if let Some(path) = &self.adventurer_image {
+            if let Some(tex) = textures.get(path) {
+                draw_texture_ex(
+                    tex,
+                    650.0, 20.0,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(vec2(100.0, 100.0)),
+                        ..Default::default()
+                    }
+                );
+            }
+        }
         
         let start_y = 120.0;
         let card_height = 100.0;

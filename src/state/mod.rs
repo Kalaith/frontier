@@ -7,12 +7,16 @@ mod mission;
 mod mission_select;
 mod combat;
 mod results;
+mod event;
+mod recruit;
 
 pub use base::BaseState;
 pub use mission::MissionState;
 pub use mission_select::MissionSelectState;
 pub use combat::{CombatState, MissionContext};
 pub use results::ResultState;
+pub use event::EventState;
+pub use recruit::RecruitState;
 
 /// Explicit state transitions - no magic callbacks
 pub enum StateTransition {
@@ -21,4 +25,6 @@ pub enum StateTransition {
     ToMission(MissionState),
     ToCombat(CombatState),
     ToResults(ResultState),
+    ToEvent(EventState),
+    ToRecruit,
 }

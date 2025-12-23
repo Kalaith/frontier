@@ -1,0 +1,42 @@
+[
+    {
+        "id": "soldier_male",
+        "title": "soldier_male",
+        "description": "Dark fantasy character portrait, male soldier warrior, heavy armor, battle-worn, stern face, short hair, sword and shield, painterly style, muted earth tones, card game art, centered bust portrait, no background, high detail"
+    },
+    {
+        "id": "soldier_female",
+        "title": "soldier_female",
+        "description": "Dark fantasy character portrait, female soldier warrior, heavy armor, battle-worn, determined face, tied back hair, sword and shield, painterly style, muted earth tones, card game art, centered bust portrait, no background, high detail"
+    },
+    {
+        "id": "scout_male",
+        "title": "scout_male",
+        "description": "Dark fantasy character portrait, male scout ranger, light leather armor, hooded cloak, sharp eyes, rugged stubble, bow and arrows, painterly style, muted earth tones, card game art, centered bust portrait, no background, high detail"
+    },
+    {
+        "id": "scout_female",
+        "title": "scout_female",
+        "description": "Dark fantasy character portrait, female scout ranger, light leather armor, hooded cloak, sharp eyes, braided hair, bow and arrows, painterly style, muted earth tones, card game art, centered bust portrait, no background, high detail"
+    },
+    {
+        "id": "healer_male",
+        "title": "healer_male",
+        "description": "Dark fantasy character portrait, male healer priest, robes with religious symbols, kind face, tonsured hair, healing staff, painterly style, muted earth tones with soft white glow, card game art, centered bust portrait, no background, high detail"
+    },
+    {
+        "id": "healer_female",
+        "title": "healer_female",
+        "description": "Dark fantasy character portrait, female healer priestess, robes with religious symbols, compassionate face, long flowing hair, healing staff, painterly style, muted earth tones with soft white glow, card game art, centered bust portrait, no background, high detail"
+    },
+    {
+        "id": "mystic_male",
+        "title": "mystic_male",
+        "description": "Dark fantasy character portrait, male mystic mage, dark robes with arcane symbols, mysterious intense eyes, long grey beard, glowing staff, painterly style, muted earth tones with purple magical highlights, card game art, centered bust portrait, no background, high detail"
+    },
+    {
+        "id": "mystic_female",
+        "title": "mystic_female",
+        "description": "Dark fantasy character portrait, female mystic sorceress, dark robes with arcane symbols, mysterious intense eyes, long dark hair, glowing staff, painterly style, muted earth tones with purple magical highlights, card game art, centered bust portrait, no background, high detail"
+    }
+]

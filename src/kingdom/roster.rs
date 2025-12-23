@@ -23,9 +23,10 @@ impl Roster {
         let mut roster = Self::new();
         
         // The initial unideal roster (per GDD)
-        roster.adventurers.push(Adventurer::new("Marcus", AdventurerClass::Soldier));
-        roster.adventurers.push(Adventurer::new("Elena", AdventurerClass::Scout));
-        roster.adventurers.push(Adventurer::new("Brother Aldric", AdventurerClass::Healer));
+        // The initial unideal roster (per GDD)
+        roster.adventurers.push(Adventurer::new("Marcus", AdventurerClass::Soldier, crate::kingdom::Gender::Male));
+        roster.adventurers.push(Adventurer::new("Elena", AdventurerClass::Scout, crate::kingdom::Gender::Female));
+        roster.adventurers.push(Adventurer::new("Brother Aldric", AdventurerClass::Healer, crate::kingdom::Gender::Male));
         
         // Give them some initial stress - they know the danger
         for adv in &mut roster.adventurers {

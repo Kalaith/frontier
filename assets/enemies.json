@@ -5,7 +5,8 @@
         "max_hp": 30,
         "base_damage": 6,
         "threat_level": 1,
-        "region": "dark_woods"
+        "region": "dark_woods",
+        "image_path": "assets/images/enemies/forest_beast.png"
     },
     {
         "id": "wild_boar",
@@ -13,7 +14,8 @@
         "max_hp": 20,
         "base_damage": 8,
         "threat_level": 1,
-        "region": "dark_woods"
+        "region": "dark_woods",
+        "image_path": "assets/images/enemies/wild_boar.png"
     },
     {
         "id": "shadow_wolf",
@@ -21,7 +23,8 @@
         "max_hp": 25,
         "base_damage": 7,
         "threat_level": 2,
-        "region": "dark_woods"
+        "region": "dark_woods",
+        "image_path": "assets/images/enemies/shadow_wolf.png"
     },
     {
         "id": "corrupted_treant",
@@ -29,6 +32,7 @@
         "max_hp": 50,
         "base_damage": 10,
         "threat_level": 3,
-        "region": "dark_woods"
+        "region": "dark_woods",
+        "image_path": "assets/images/enemies/corrupted_treant.png"
     }
 ]

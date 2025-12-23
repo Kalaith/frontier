@@ -12,6 +12,8 @@ pub struct EnemyData {
     pub base_damage: i32,
     pub threat_level: i32,
     pub region: String,
+    #[serde(default)]
+    pub image_path: Option<String>,
 }
 
 impl EnemyData {
@@ -22,6 +24,38 @@ impl EnemyData {
     
     /// Convert to a combat Unit
     pub fn to_unit(&self) -> Unit {
-        Unit::new_enemy(&self.name, self.max_hp)
+        Unit::new_enemy_with_damage(&self.name, self.max_hp, self.base_damage, self.image_path.clone())
     }
 }
+
+/// Get a random enemy appropriate for the given difficulty
+pub fn random_enemy_for_difficulty(difficulty: i32) -> Unit {
+    use rand::seq::SliceRandom;
+    
+    match EnemyData::load_all() {
+        Ok(enemies) => {
+            // Filter to enemies at or below the difficulty
+            let suitable: Vec<_> = enemies.iter()
+                .filter(|e| e.threat_level <= difficulty)
+                .collect();
+            
+            if suitable.is_empty() {
+                // Fallback to any enemy
+                if let Some(enemy) = enemies.first() {
+                    return enemy.to_unit();
+                }
+            } else {
+                // Pick a random one
+                let mut rng = rand::thread_rng();
+                if let Some(enemy) = suitable.choose(&mut rng) {
+                    return enemy.to_unit();
+                }
+            }
+            
+            // Ultimate fallback
+            Unit::new_enemy("Forest Beast", 30, None)
+        }
+        Err(_) => Unit::new_enemy("Forest Beast", 30, None)
+    }
+}
+

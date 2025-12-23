@@ -9,6 +9,8 @@ pub struct Adventurer {
     pub id: String,
     pub name: String,
     pub class: AdventurerClass,
+    #[serde(default = "default_gender")]
+    pub gender: Gender,
     
     // Stats
     pub hp: i32,
@@ -29,10 +31,15 @@ pub struct Adventurer {
     pub available: bool,
     pub missions_completed: u32,
     pub kills: u32,
+    pub image_path: Option<String>,
+}
+
+fn default_gender() -> Gender {
+    Gender::Male
 }
 
 impl Adventurer {
-    pub fn new(name: &str, class: AdventurerClass) -> Self {
+    pub fn new(name: &str, class: AdventurerClass, gender: Gender) -> Self {
         let base_hp = match class {
             AdventurerClass::Soldier => 45,
             AdventurerClass::Scout => 35,
@@ -40,10 +47,26 @@ impl Adventurer {
             AdventurerClass::Mystic => 32,
         };
         
+        // Select image based on class and gender
+        let gender_suffix = match gender {
+            Gender::Male => "male",
+            Gender::Female => "female",
+        };
+        
+        let class_name = match class {
+            AdventurerClass::Soldier => "soldier",
+            AdventurerClass::Scout => "scout",
+            AdventurerClass::Healer => "healer",
+            AdventurerClass::Mystic => "mystic",
+        };
+        
+        let image_path = Some(format!("assets/images/characters/{}_{}.png", class_name, gender_suffix));
+        
         Self {
             id: uuid_simple(),
             name: name.to_string(),
             class,
+            gender,
             hp: base_hp,
             max_hp: base_hp,
             stress: 0,
@@ -56,6 +79,7 @@ impl Adventurer {
             available: true,
             missions_completed: 0,
             kills: 0,
+            image_path,
         }
     }
     
@@ -121,6 +145,12 @@ pub enum AdventurerClass {
     Scout,    // Low HP, utility/evasion
     Healer,   // Low HP, stress/healing
     Mystic,   // Medium HP, special effects
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum Gender {
+    Male,
+    Female,
 }
 
 /// Positive or negative traits affecting gameplay
