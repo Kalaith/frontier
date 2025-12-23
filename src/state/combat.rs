@@ -167,24 +167,30 @@ impl CombatState {
     }
     
     fn end_turn(&mut self) {
-        // Enemy executes their intent
-        let (damage, stress) = self.enemy.execute_intent();
+        // Player status tick
+        self.player.tick_statuses();
+        self.player.block = 0;
         
-        if damage > 0 {
-            let actual_damage = (damage - self.player.block).max(0);
-            self.player.hp -= actual_damage;
-            self.damage_taken += actual_damage;
+        // Enemy Action
+        let (dmg, stress) = self.enemy.execute_intent();
+        
+        // Apply damage to player
+        if dmg > 0 {
+            let actual = self.player.take_damage(dmg);
+            self.damage_taken += actual;
         }
         
-        self.player.stress += 2 + stress;
+        self.player.add_stress(stress);
         self.stress_gained += 2 + stress;
         
-        // Reset for next turn
-        self.player.block = 0;
+        // Enemy status tick
+        self.enemy.tick_statuses();
         self.enemy.block = 0;
+        
+        // Next Turn
         self.turn += 1;
         self.energy = self.max_energy;
-        self.hand = Card::starter_hand();
+        self.hand = Card::starter_hand(); // TODO: Draw from Deck
         
         // Roll new enemy intent for next turn
         self.enemy.roll_intent(self.turn);
@@ -225,12 +231,27 @@ impl CombatState {
         draw_text(&format!("Block: {}", self.player.block), 20.0, player_y + 45.0, 18.0, BLUE);
         draw_text(&format!("Stress: {}", self.player.stress), 20.0, player_y + 65.0, 18.0, ORANGE);
         
+        // Draw Player Statuses
+        let mut sx = 20.0;
+        let sy = player_y + 85.0; // Draw above image or over it? Let's verify space.
+        // Image is at player_y + 80? Wait, let's shift image down or draw statuses next to name.
+        // Let's draw statuses below stats.
+        for status in &self.player.statuses {
+             let color = match status.effect_type {
+                 crate::kingdom::StatusType::Vulnerable | crate::kingdom::StatusType::Weak | crate::kingdom::StatusType::Stun => RED,
+                 _ => GREEN,
+             };
+             let text = format!("{:?}({})", status.effect_type, status.duration);
+             draw_text(&text, sx, sy, 16.0, color);
+             sx += 100.0; // Spacing
+        }
+        
         // Player image
         if let Some(path) = &self.player.image_path {
             if let Some(tex) = textures.get(path) {
                 draw_texture_ex(
                     tex,
-                    20.0, player_y + 80.0,
+                    20.0, player_y + 110.0, // Shifted down
                     WHITE,
                     DrawTextureParams {
                         dest_size: Some(vec2(120.0, 120.0)),
@@ -241,13 +262,28 @@ impl CombatState {
         }
         
         // Energy (moved below image to avoid overlap)
-        draw_text(&format!("Energy: {}/{}", self.energy, self.max_energy), 20.0, player_y + 220.0, 20.0, SKYBLUE);
+        draw_text(&format!("Energy: {}/{}", self.energy, self.max_energy), 20.0, player_y + 240.0, 20.0, SKYBLUE);
         
         // Enemy stats
         let enemy_x = screen_width() - 200.0;
         draw_text(&self.enemy.name, enemy_x, player_y, 22.0, RED);
         draw_text(&format!("HP: {}/{}", self.enemy.hp, self.enemy.max_hp), enemy_x, player_y + 25.0, 18.0, GREEN);
         draw_text(&format!("Block: {}", self.enemy.block), enemy_x, player_y + 45.0, 18.0, BLUE);
+        
+        // Draw Enemy Statuses
+        let mut ex = enemy_x;
+        let ey = player_y + 65.0;
+        for status in &self.enemy.statuses {
+             let color = match status.effect_type {
+                 crate::kingdom::StatusType::Vulnerable | crate::kingdom::StatusType::Weak | crate::kingdom::StatusType::Stun => GREEN, // Good for player
+                 _ => RED,
+             };
+             let text = format!("{:?}({})", status.effect_type, status.duration);
+             draw_text(&text, ex, ey, 16.0, color);
+             ex += 100.0; // Wrap?
+             // Since right aligned, this might go off screen. 
+             // Let's stack vertically.
+        }
         
         // Enemy intent - shows what they'll do next
         let intent_color = match &self.enemy.intent {

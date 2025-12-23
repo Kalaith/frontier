@@ -1,6 +1,7 @@
 //! Combat units - players and enemies
 
 use serde::{Deserialize, Serialize};
+use crate::kingdom::{StatusEffect, StatusType};
 
 /// What an enemy intends to do next turn
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -37,6 +38,7 @@ pub struct Unit {
     pub image_path: Option<String>,
     pub base_damage: i32,
     pub intent: EnemyIntent,
+    pub statuses: Vec<StatusEffect>,
 }
 
 impl Unit {
@@ -51,6 +53,7 @@ impl Unit {
             image_path: None,
             base_damage: 0,
             intent: EnemyIntent::Unknown,
+            statuses: vec![],
         }
     }
     
@@ -65,6 +68,7 @@ impl Unit {
             image_path,
             base_damage: 6,
             intent: EnemyIntent::Attack(6),
+            statuses: vec![],
         }
     }
     
@@ -80,12 +84,19 @@ impl Unit {
             image_path,
             base_damage,
             intent: EnemyIntent::Attack(base_damage),
+            statuses: vec![],
         }
     }
     
     /// Roll a new intent based on enemy AI pattern
     pub fn roll_intent(&mut self, turn: usize) {
         if self.is_player { return; }
+        
+        // Check for Stun status
+        if self.has_status(StatusType::Stun) {
+            self.intent = EnemyIntent::Unknown; // Or explicit Stun intent
+            return;
+        }
         
         // Simple pattern: Attack most turns, occasionally block
         let pattern = turn % 4;
@@ -100,6 +111,10 @@ impl Unit {
     
     /// Execute the current intent, returning damage dealt (if attack)
     pub fn execute_intent(&mut self) -> (i32, i32) {
+        if self.has_status(StatusType::Stun) {
+            return (0, 0);
+        }
+        
         match self.intent {
             EnemyIntent::Attack(dmg) => (dmg, 0),
             EnemyIntent::Block(amt) => {
@@ -115,11 +130,20 @@ impl Unit {
         }
     }
     
-    pub fn take_damage(&mut self, amount: i32) {
-        let blocked = amount.min(self.block);
+    pub fn take_damage(&mut self, amount: i32) -> i32 {
+        let mut final_damage = amount;
+        
+        // Vulnerable: +50% damage
+        if self.has_status(StatusType::Vulnerable) {
+            final_damage = (final_damage as f32 * 1.5) as i32;
+        }
+        
+        let blocked = final_damage.min(self.block);
         self.block -= blocked;
-        let remaining = amount - blocked;
+        let remaining = final_damage - blocked;
         self.hp -= remaining;
+        
+        remaining // Return actual damage taken
     }
     
     pub fn add_block(&mut self, amount: i32) {
@@ -132,5 +156,45 @@ impl Unit {
     
     pub fn reduce_stress(&mut self, amount: i32) {
         self.stress = (self.stress - amount).max(0);
+    }
+    
+    pub fn add_status(&mut self, effect: StatusEffect) {
+        // Check if existing status of same type, extend duration or value?
+        // Simple simplified rule: Add to list. (Duplicates stack intensity?)
+        // Or unique by type?
+        // Let's replace if exists for simplicity, or add if unique.
+        if let Some(existing) = self.statuses.iter_mut().find(|s| s.effect_type == effect.effect_type) {
+             existing.duration = existing.duration.max(effect.duration);
+             if effect.value > existing.value {
+                 existing.value = effect.value;
+             }
+        } else {
+            self.statuses.push(effect);
+        }
+    }
+    
+    pub fn has_status(&self, status_type: StatusType) -> bool {
+        self.statuses.iter().any(|s| s.effect_type == status_type)
+    }
+    
+    pub fn tick_statuses(&mut self) {
+        // Apply end-of-turn effects like Regen/Bleed here?
+        // Or simplify: just reduce duration.
+        // Let's implement Regen here.
+        
+        let mut hp_change = 0;
+        
+        self.statuses.retain_mut(|s| {
+            if s.effect_type == StatusType::Regen {
+                hp_change += s.value;
+            }
+            
+            s.duration -= 1;
+            s.duration > 0
+        });
+        
+        if hp_change > 0 {
+            self.hp = (self.hp + hp_change).min(self.max_hp);
+        }
     }
 }

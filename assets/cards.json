@@ -131,5 +131,42 @@
       }
     ],
     "image_path": "assets/images/cards/last_ditch_effort.png"
+  },
+  {
+    "id": "shield_bash",
+    "name": "Shield Bash",
+    "cost": 2,
+    "description": "Deal 3 damage. Stun enemy for 1 turn.",
+    "effects": [
+      {
+        "Damage": 3
+      },
+      {
+        "ApplyStatus": {
+          "effect_type": "Stun",
+          "duration": 1,
+          "value": 0,
+          "target_self": false
+        }
+      }
+    ],
+    "image_path": "assets/images/cards/shield_bash.png"
+  },
+  {
+    "id": "intimidate",
+    "name": "Intimidate",
+    "cost": 1,
+    "description": "Apply Vulnerable (50% more dmg taken) for 2 turns.",
+    "effects": [
+      {
+        "ApplyStatus": {
+          "effect_type": "Vulnerable",
+          "duration": 2,
+          "value": 0,
+          "target_self": false
+        }
+      }
+    ],
+    "image_path": "assets/images/cards/intimidate.png"
   }
 ]

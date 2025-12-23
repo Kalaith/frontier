@@ -19,4 +19,11 @@ pub enum CardEffect {
     DamageIfNoBlock { base: i32, bonus: i32 },
     /// Conditional damage if HP below percentage
     DamageIfLowHp { base: i32, bonus: i32, threshold_percent: i32 },
+    /// Apply a status effect
+    ApplyStatus {
+        effect_type: crate::kingdom::StatusType,
+        duration: i32,
+        value: i32,
+        target_self: bool, 
+    },
 }

@@ -23,6 +23,7 @@ pub struct Adventurer {
     pub traits: Vec<Trait>,
     pub injuries: Vec<Injury>,
     pub traumas: Vec<Trauma>,
+    pub statuses: Vec<StatusEffect>,
     
     // Cards this adventurer has unlocked/added
     pub deck_additions: Vec<String>, // Card IDs
@@ -53,6 +54,7 @@ impl Adventurer {
             Gender::Female => "female",
         };
         
+        // ... (lines 53-61 unchanged in replacement) ...
         let class_name = match class {
             AdventurerClass::Soldier => "soldier",
             AdventurerClass::Scout => "scout",
@@ -75,6 +77,7 @@ impl Adventurer {
             traits: vec![],
             injuries: vec![],
             traumas: vec![],
+            statuses: vec![],
             deck_additions: vec![],
             available: true,
             missions_completed: 0,
@@ -216,4 +219,27 @@ pub enum TraumaType {
     Paranoid,  // Block cards cost +1
     Broken,    // All cards cost +1
     Hopeless,  // Cannot reduce stress in combat
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum StatusType {
+    Strength,   // +Value Damage Dealt
+    Vulnerable, // +50% Damage Taken
+    Weak,       // -25% Damage Dealt
+    Stun,       // Skip Turn (duration reduces by 1 per turn)
+    Regen,      // +Value HP per turn
+    Block,      // Absorbs damage (Value amount), duration usually 1 turn
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StatusEffect {
+    pub effect_type: StatusType,
+    pub duration: i32,
+    pub value: i32,
+}
+
+impl StatusEffect {
+    pub fn new(effect_type: StatusType, duration: i32, value: i32) -> Self {
+        Self { effect_type, duration, value }
+    }
 }

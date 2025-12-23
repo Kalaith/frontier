@@ -12,7 +12,7 @@ This document outlines the path from current prototype to MVP (Minimum Viable Pr
 - [x] Card Playing mechanics.
 - [x] **Enemy Intent System:** Display what the enemy *intends* to do next turn (Attack, Block, Buff) so the player can react.
 - [x] **Dynamic Enemy Spawning:** Load enemies from `enemies.json` instead of hardcoded structs.
-- [ ] **Status Effects:** Implement Buffs/Debuffs (Vulnerable, Weak, Stun) in `CombatResolver`.
+- [x] **Status Effects:** Implement Buffs/Debuffs (Vulnerable, Weak, Stun) in `CombatResolver`.
 - [x] **Death & Injury:** Correctly handle adventurer death (permadeath) and lasting injuries if they survive at 0 HP (Death's Door mechanic?).
 
 ### 1.2 Mission & Exploration (Priority: High)
@@ -33,7 +33,7 @@ This document outlines the path from current prototype to MVP (Minimum Viable Pr
 
 ### 1.4 Technical & UI
 - [x] Save/Load System (Basic).
-- [ ] **Deck Viewer:** UI to view the current adventurer's deck in the Base and during Missions.
+- [x] **Deck Viewer:** Allow viewing current deck outside of combat.he Base and during Missions.
 - [ ] **Tooltips:** Hover over keywords (Stress, Block) to see explanations.
 
 ---
@@ -74,6 +74,6 @@ This document outlines the path from current prototype to MVP (Minimum Viable Pr
 ---
 
 ## Immediate Next Steps (To-Do List)
-1.  **Enemy Intents:** Add UI and logic to show enemy planned actions.
-2.  **Event System:** Create a generic Event system for non-combat nodes.
-3.  **Recruitment UI:** Allow hiring new meat for the grinder.
+1.  **Status Effects:** [x] Implement Buffs/Debuffs to deepen combat.
+2.  **Map Variety:** [ ] Branching paths for exploration.
+3.  **Deck Viewer:** [x] View card decks in Base/Mission.

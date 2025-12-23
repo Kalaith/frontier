@@ -17,8 +17,18 @@ impl CombatResolver {
     pub fn resolve(&mut self, effect: &CardEffect, player: &mut Unit, target: &mut Unit) {
         match effect {
             CardEffect::Damage(amount) => {
-                target.take_damage(*amount);
-                self.log.push(format!("{} takes {} damage", target.name, amount));
+                let mut dmg = *amount;
+                // Apply Strength
+                if let Some(s) = player.statuses.iter().find(|s| s.effect_type == crate::kingdom::StatusType::Strength) {
+                    dmg += s.value;
+                }
+                // Apply Weak (-25%)
+                if player.has_status(crate::kingdom::StatusType::Weak) {
+                    dmg = (dmg as f32 * 0.75) as i32;
+                }
+                
+                target.take_damage(dmg);
+                self.log.push(format!("{} takes {} damage", target.name, dmg));
             }
             CardEffect::Block(amount) => {
                 player.add_block(*amount);
@@ -46,6 +56,12 @@ impl CombatResolver {
                 let total = if player.hp < threshold { base + bonus } else { *base };
                 target.take_damage(total);
                 self.log.push(format!("{} takes {} damage", target.name, total));
+            }
+            CardEffect::ApplyStatus { effect_type, duration, value, target_self } => {
+                let status = crate::kingdom::StatusEffect::new(effect_type.clone(), *duration, *value);
+                let who = if *target_self { player } else { target };
+                who.add_status(status);
+                self.log.push(format!("{} gains {:?} for {} turns", who.name, effect_type, duration));
             }
         }
     }

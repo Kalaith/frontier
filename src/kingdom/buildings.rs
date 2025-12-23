@@ -8,6 +8,8 @@ pub struct Building {
     pub id: String,
     pub name: String,
     pub description: String,
+    pub built: bool,
+    pub level: i32,
     pub cost_gold: i32,
     pub cost_supplies: i32,
 }

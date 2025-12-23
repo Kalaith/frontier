@@ -143,4 +143,13 @@ Generate-Image -PromptText "A grim, battle-worn fantasy soldier with heavy plate
 Generate-Image -PromptText "A mystical fantasy healer with hooded robes, glowing runes on hands, carrying a gnarled staff, dark fantasy style, digital painting, 2D sprite feel, isolated on a simple dark background. Portrait framing." -Filename "healer" -Checkpoint $checkpoint
 Generate-Image -PromptText "A terrifying forest beast with multiple eyes and moss-covered fur, sharp claws, glowing green eyes, dark fantasy style, digital painting, 2D sprite feel, isolated on a simple dark background. Portrait framing." -Filename "forest_beast" -Checkpoint $checkpoint
 
+# Ensure cards directory exists
+$cardsDir = Join-Path $outputDir "cards"
+if (-not (Test-Path $cardsDir)) {
+    New-Item -ItemType Directory -Path $cardsDir | Out-Null
+}
+
+Generate-Image -PromptText "Fantasy card art, heavy shield bash impact, dynamic action, stunned enemy, motion blur, dark fantasy style, digital painting, 2D sprite feel" -Filename "cards\shield_bash" -Checkpoint $checkpoint
+Generate-Image -PromptText "Fantasy warrior shouting battle cry to intimidate, closeup face, saliva, fierce expression, terrified enemies in background, dark fantasy style, digital painting, 2D sprite feel" -Filename "cards\intimidate" -Checkpoint $checkpoint
+
 Write-Host "All done!"

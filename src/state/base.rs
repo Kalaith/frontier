@@ -23,23 +23,31 @@ pub struct BaseState {
     pub selected_building: Option<usize>,
     pub selected_adventurer: Option<usize>,
     pub focus: FocusArea,
+    pub viewing_deck: bool,
 }
 
 impl BaseState {
     pub fn update(&mut self, kingdom: &mut KingdomState, roster: &mut Roster) -> Option<StateTransition> {
+        // Deck View handling
+        if self.viewing_deck {
+            if is_key_pressed(KeyCode::Escape) {
+                self.viewing_deck = false;
+            }
+            return None; // Block other inputs while viewing deck
+        }
+        
         // Toggle focus
         if is_key_pressed(KeyCode::Tab) {
             self.focus = match self.focus {
                 FocusArea::Roster => FocusArea::Buildings,
                 FocusArea::Buildings => FocusArea::Roster,
             };
-            // Clear selections to avoid confusion? Or keep them?
-            // Keeping them allows quick switch back.
+            self.viewing_deck = false;
         }
         
         match self.focus {
             FocusArea::Roster => {
-                // Adventurer selection
+                // ... (existing roster selection code) ...
                 let available_count = roster.adventurers.len().min(9);
                 for i in 0..available_count {
                     let key = match i {
@@ -57,6 +65,11 @@ impl BaseState {
                 // Roster Actions
                 if let Some(adv_idx) = self.selected_adventurer {
                     if adv_idx < roster.adventurers.len() {
+                        // D: Deck
+                        if is_key_pressed(KeyCode::D) {
+                            self.viewing_deck = true;
+                        }
+                        
                         // M: Mission
                         if is_key_pressed(KeyCode::M) {
                             let adventurer = &roster.adventurers[adv_idx];
@@ -151,7 +164,7 @@ impl BaseState {
         draw_text("FRONTIER KINGDOM", 20.0, 40.0, 32.0, WHITE);
         draw_text("Manage your kingdom. [TAB] Switch Focus", 20.0, 70.0, 18.0, GRAY);
         
-        // Draw kingdom stats
+        // ... (Kingdom stats drawing unchanged) ...
         let stats = &kingdom.stats;
         let y_start = 120.0;
         draw_text(&format!("Gold: {}", stats.gold), 20.0, y_start, 20.0, YELLOW);
@@ -160,7 +173,7 @@ impl BaseState {
         draw_text(&format!("Morale: {}", stats.morale), 20.0, y_start + 75.0, 20.0, ORANGE);
         draw_text(&format!("Knowledge: {}", stats.knowledge), 20.0, y_start + 100.0, 20.0, PURPLE);
         
-        // Draw selected adventurer image large if selected (and in roster focus)
+        // Draw selected adventurer image large
         if self.focus == FocusArea::Roster {
             if let Some(idx) = self.selected_adventurer {
                 if let Some(adv) = roster.adventurers.get(idx) {
@@ -256,11 +269,105 @@ impl BaseState {
             }
         }
         
+        // Draw description for selected building
+        if self.focus == FocusArea::Buildings {
+            if let Some(idx) = self.selected_building {
+                if let Some(b) = kingdom.buildings.get(idx) {
+                    let desc_y = build_y + (kingdom.buildings.len() as f32 * 70.0) + 50.0;
+                    draw_text("BUILDING INFO:", build_x, desc_y, 20.0, YELLOW);
+                    
+                    let max_width = 40;
+                    let mut current_line = String::new();
+                    let mut line_y = desc_y + 25.0;
+                    
+                    for word in b.description.split_whitespace() {
+                        if current_line.len() + word.len() > max_width {
+                            draw_text(&current_line, build_x, line_y, 18.0, WHITE);
+                            current_line.clear();
+                            line_y += 20.0;
+                        }
+                        current_line.push_str(word);
+                        current_line.push(' ');
+                    }
+                    if !current_line.is_empty() {
+                        draw_text(&current_line, build_x, line_y, 18.0, WHITE);
+                    }
+                }
+            }
+        }
+        
+        // DECK VIEWER OVERLAY
+        if self.viewing_deck {
+            if let Some(idx) = self.selected_adventurer {
+                if let Some(adv) = roster.adventurers.get(idx) {
+                    // Draw dimming overlay
+                    draw_rectangle(0.0, 0.0, screen_width(), screen_height(), Color::from_rgba(0, 0, 0, 220));
+                    
+                    draw_text(&format!("{}'s Deck", adv.name), 50.0, 50.0, 40.0, WHITE);
+                    draw_text("[ESC] Close", screen_width() - 150.0, 50.0, 20.0, GRAY);
+                    
+                    // Reconstruct deck
+                    // Note: This is inefficient to do every frame, but fine for simple prototype
+                    let mut deck = crate::data::cards::load_starter_deck().unwrap_or_default();
+                    if let Ok(all_cards) = crate::data::cards::CardData::load_all() {
+                        for id in &adv.deck_additions {
+                            if let Some(data) = all_cards.iter().find(|c| c.id == *id) {
+                                deck.push(data.to_card());
+                            }
+                        }
+                    }
+                    
+                    // Draw Cards Grid
+                    let start_x = 50.0;
+                    let start_y = 100.0;
+                    let card_w = 120.0;
+                    let card_h = 160.0;
+                    let gap = 20.0;
+                    let cols = ((screen_width() - 100.0) / (card_w + gap)) as i32;
+                    
+                    for (i, card) in deck.iter().enumerate() {
+                        let row = (i as i32) / cols;
+                        let col = (i as i32) % cols;
+                        
+                        let x = start_x + (col as f32 * (card_w + gap));
+                        let y = start_y + (row as f32 * (card_h + gap));
+                        
+                        // Card Body
+                        draw_rectangle(x, y, card_w, card_h, DARKGRAY);
+                        draw_rectangle_lines(x, y, card_w, card_h, 2.0, WHITE);
+                        
+                        // Card Info
+                        draw_text(&card.name, x + 5.0, y + 20.0, 16.0, WHITE);
+                        draw_text(&format!("Cost: {}", card.cost), x + 5.0, y + 40.0, 16.0, SKYBLUE);
+                        
+                        // Description (Tiny)
+                        // Simple word wrap
+                        let mut desc_y = y + 60.0;
+                         let max_chars = 15;
+                        let mut current_line = String::new();
+                        for word in card.description.split_whitespace() {
+                            if current_line.len() + word.len() > max_chars {
+                                draw_text(&current_line, x + 5.0, desc_y, 14.0, LIGHTGRAY);
+                                current_line.clear();
+                                desc_y += 14.0;
+                            }
+                            current_line.push_str(word);
+                            current_line.push(' ');
+                        }
+                        if !current_line.is_empty() {
+                            draw_text(&current_line, x + 5.0, desc_y, 14.0, LIGHTGRAY);
+                        }
+                    }
+                }
+            }
+            return; // Skip drawing main instructions if overlay active
+        }
+        
         // Draw instructions
         let instruction = match self.focus {
             FocusArea::Roster => {
                 if self.selected_adventurer.is_some() {
-                    let mut s = String::from("[M] Launch Mission");
+                    let mut s = String::from("[M] Launch Mission  [D] View Deck");
                     let has_infirmary = kingdom.buildings.iter().any(|b| b.id == "infirmary" && b.built);
                     let has_chapel = kingdom.buildings.iter().any(|b| b.id == "chapel" && b.built);
                     let has_guild = kingdom.buildings.iter().any(|b| b.id == "guild_hall" && b.built);
@@ -275,17 +382,17 @@ impl BaseState {
                 }
             },
             FocusArea::Buildings => {
-                 if let Some(idx) = self.selected_building {
-                     if let Some(b) = kingdom.buildings.get(idx) {
-                         if !b.built {
-                             "[ENTER] Construct Building".to_string()
-                         } else {
-                            "Building Active".to_string()
-                         }
-                     } else { "".to_string() }
-                 } else {
-                     "[1-9] Select Building".to_string()
-                 }
+                  if let Some(idx) = self.selected_building {
+                      if let Some(b) = kingdom.buildings.get(idx) {
+                          if !b.built {
+                              "[ENTER] Construct Building".to_string()
+                          } else {
+                             "Building Active".to_string()
+                          }
+                      } else { "".to_string() }
+                  } else {
+                      "[1-9] Select Building".to_string()
+                  }
             }
         };
         
