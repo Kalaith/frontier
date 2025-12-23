@@ -1,0 +1,34 @@
+[
+    {
+        "id": "forest_beast",
+        "name": "Forest Beast",
+        "max_hp": 30,
+        "base_damage": 6,
+        "threat_level": 1,
+        "region": "dark_woods"
+    },
+    {
+        "id": "wild_boar",
+        "name": "Wild Boar",
+        "max_hp": 20,
+        "base_damage": 8,
+        "threat_level": 1,
+        "region": "dark_woods"
+    },
+    {
+        "id": "shadow_wolf",
+        "name": "Shadow Wolf",
+        "max_hp": 25,
+        "base_damage": 7,
+        "threat_level": 2,
+        "region": "dark_woods"
+    },
+    {
+        "id": "corrupted_treant",
+        "name": "Corrupted Treant",
+        "max_hp": 50,
+        "base_damage": 10,
+        "threat_level": 3,
+        "region": "dark_woods"
+    }
+]

@@ -1,0 +1,41 @@
+[
+    {
+        "id": "scout_dark_woods",
+        "name": "Scout the Dark Woods",
+        "description": "Map the forest edge. Avoid direct confrontation if possible.",
+        "mission_type": "Scout",
+        "region_id": "dark_woods",
+        "length": 5,
+        "difficulty": 1,
+        "reward_supplies": 10,
+        "reward_knowledge": 15,
+        "reward_influence": 0,
+        "base_stress": 8
+    },
+    {
+        "id": "suppress_beasts",
+        "name": "Suppress Forest Beasts",
+        "description": "Clear the creatures blocking the main road.",
+        "mission_type": "Suppress",
+        "region_id": "dark_woods",
+        "length": 6,
+        "difficulty": 2,
+        "reward_supplies": 20,
+        "reward_knowledge": 5,
+        "reward_influence": 10,
+        "base_stress": 15
+    },
+    {
+        "id": "investigate_markers",
+        "name": "Investigate the Markers",
+        "description": "Strange stone markers appear along the forest paths. Learn their meaning.",
+        "mission_type": "Investigate",
+        "region_id": "dark_woods",
+        "length": 4,
+        "difficulty": 1,
+        "reward_supplies": 5,
+        "reward_knowledge": 25,
+        "reward_influence": 5,
+        "base_stress": 20
+    }
+]

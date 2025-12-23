@@ -1,0 +1,44 @@
+[
+    {
+        "id": "dark_woods",
+        "name": "The Dark Woods",
+        "description": "Dense forest with twisted paths. Something moves between the trees.",
+        "threat_level": 30,
+        "knowledge": 10,
+        "unlocked": true,
+        "faction": "The Wild Hunt",
+        "traits": [
+            "Tangled Paths",
+            "Shadow Beasts",
+            "The Watcher"
+        ]
+    },
+    {
+        "id": "ruined_outpost",
+        "name": "The Ruined Outpost",
+        "description": "An abandoned military post. The previous garrison did not leave willingly.",
+        "threat_level": 50,
+        "knowledge": 0,
+        "unlocked": false,
+        "faction": "The Returned",
+        "traits": [
+            "Haunted Grounds",
+            "Broken Walls",
+            "The Commander"
+        ]
+    },
+    {
+        "id": "sunken_valley",
+        "name": "The Sunken Valley",
+        "description": "A mist-filled depression. Those who enter find it hard to leave.",
+        "threat_level": 70,
+        "knowledge": 0,
+        "unlocked": false,
+        "faction": "The Drowned",
+        "traits": [
+            "Endless Mist",
+            "Sucking Mud",
+            "The Depths"
+        ]
+    }
+]
