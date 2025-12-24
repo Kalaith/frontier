@@ -11,13 +11,29 @@ pub struct TurnModifiers {
     pub attacks_disabled: bool,
     /// Tracks if enemy took an action last turn (for conditional effects)
     pub enemy_acted_last_turn: bool,
+    /// Extra energy gained next turn
+    pub energy_next_turn: i32,
+    /// Cards to draw (accumulated during resolution)
+    pub cards_to_draw: i32,
+    /// Energy to gain (accumulated during resolution)
+    pub energy_to_gain: i32,
 }
 
 impl TurnModifiers {
     pub fn reset(&mut self) {
         self.stress_resistance = 0;
         self.attacks_disabled = false;
-        // Note: enemy_acted_last_turn is updated by combat logic, not reset here
+        self.cards_to_draw = 0;
+        self.energy_to_gain = 0;
+        // Note: enemy_acted_last_turn and energy_next_turn are updated by combat logic
+    }
+    
+    /// Called at start of new turn to apply energy from previous turn
+    #[allow(dead_code)]
+    pub fn start_turn(&mut self) -> i32 {
+        let extra = self.energy_next_turn;
+        self.energy_next_turn = 0;
+        extra
     }
 }
 
@@ -67,6 +83,10 @@ impl CombatResolver {
                 if player.has_status(crate::kingdom::StatusType::Weak) {
                     dmg = (dmg as f32 * 0.75) as i32;
                 }
+                // Apply Vulnerable (+50% damage taken)
+                if target.has_status(crate::kingdom::StatusType::Vulnerable) {
+                    dmg = (dmg as f32 * 1.5) as i32;
+                }
                 
                 target.take_damage(dmg);
                 self.log.push(format!("{} takes {} damage", target.name, dmg));
@@ -86,6 +106,30 @@ impl CombatResolver {
             CardEffect::ReduceStress(amount) => {
                 player.reduce_stress(*amount);
                 self.log.push(format!("{} reduces stress by {}", player.name, amount));
+            }
+            CardEffect::Heal(amount) => {
+                player.heal(*amount);
+                self.log.push(format!("{} heals {} HP", player.name, amount));
+            }
+            CardEffect::DrawCards(count) => {
+                self.turn_mods.cards_to_draw += count;
+                self.log.push(format!("{} will draw {} card(s)", player.name, count));
+            }
+            CardEffect::GainEnergy(amount) => {
+                self.turn_mods.energy_to_gain += amount;
+                self.log.push(format!("{} will gain {} energy", player.name, amount));
+            }
+            CardEffect::GainEnergyNextTurn(amount) => {
+                self.turn_mods.energy_next_turn += amount;
+                self.log.push(format!("{} will gain {} energy next turn", player.name, amount));
+            }
+            CardEffect::ClearDebuffs => {
+                player.clear_debuffs();
+                self.log.push(format!("{} clears all debuffs", player.name));
+            }
+            CardEffect::EnemyStress(amount) => {
+                // Enemies don't have stress in the same way, but this could reduce their effectiveness
+                self.log.push(format!("{} gains {} stress", target.name, amount));
             }
             CardEffect::DamageIfNoBlock { base, bonus } => {
                 let total = if target.block == 0 { base + bonus } else { *base };
@@ -111,6 +155,12 @@ impl CombatResolver {
                 }
                 target.take_damage(dmg);
                 self.log.push(format!("{} takes {} damage (enemy acted: {})", target.name, dmg, self.turn_mods.enemy_acted_last_turn));
+            }
+            CardEffect::DamageIfVulnerable { base, bonus } => {
+                let is_vulnerable = target.has_status(crate::kingdom::StatusType::Vulnerable);
+                let total = if is_vulnerable { base + bonus } else { *base };
+                target.take_damage(total);
+                self.log.push(format!("{} takes {} damage (vulnerable: {})", target.name, total, is_vulnerable));
             }
             CardEffect::ApplyStatus { effect_type, duration, value, target_self } => {
                 let status = crate::kingdom::StatusEffect::new(effect_type.clone(), *duration, *value);

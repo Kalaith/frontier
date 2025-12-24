@@ -234,6 +234,21 @@ pub enum StatusType {
     Stun,       // Skip Turn (duration reduces by 1 per turn)
     Regen,      // +Value HP per turn
     Block,      // Absorbs damage (Value amount), duration usually 1 turn
+    Poison,     // Take Value damage per turn
+    Burn,       // Take Value damage per turn
+}
+
+impl StatusType {
+    /// Check if this status type is a debuff (negative effect)
+    pub fn is_debuff(&self) -> bool {
+        matches!(self, 
+            StatusType::Vulnerable | 
+            StatusType::Weak | 
+            StatusType::Stun | 
+            StatusType::Poison | 
+            StatusType::Burn
+        )
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -246,5 +261,10 @@ pub struct StatusEffect {
 impl StatusEffect {
     pub fn new(effect_type: StatusType, duration: i32, value: i32) -> Self {
         Self { effect_type, duration, value }
+    }
+    
+    /// Check if this status effect is a debuff
+    pub fn is_debuff(&self) -> bool {
+        self.effect_type.is_debuff()
     }
 }

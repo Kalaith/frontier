@@ -37,5 +37,56 @@
         "reward_knowledge": 25,
         "reward_influence": 5,
         "base_stress": 20
+    },
+    {
+        "id": "scout_outpost",
+        "name": "Scout the Ruined Outpost",
+        "description": "Reconnaissance of the abandoned military post. What drove them out?",
+        "mission_type": "Scout",
+        "region_id": "ruined_outpost",
+        "length": 5,
+        "difficulty": 2,
+        "reward_supplies": 15,
+        "reward_knowledge": 20,
+        "reward_influence": 5,
+        "base_stress": 15,
+        "unlock_requirement": {
+            "type": "building",
+            "building": "watchtowers"
+        }
+    },
+    {
+        "id": "clear_outpost",
+        "name": "Clear the Outpost",
+        "description": "The outpost must be secured before we can establish a forward base.",
+        "mission_type": "Suppress",
+        "region_id": "ruined_outpost",
+        "length": 7,
+        "difficulty": 3,
+        "reward_supplies": 30,
+        "reward_knowledge": 10,
+        "reward_influence": 20,
+        "base_stress": 25,
+        "unlock_requirement": {
+            "type": "mission_complete",
+            "mission_id": "scout_outpost"
+        }
+    },
+    {
+        "id": "investigate_valley",
+        "name": "Investigate the Sunken Valley",
+        "description": "The mists call to those who listen. Learn what lurks within.",
+        "mission_type": "Investigate",
+        "region_id": "sunken_valley",
+        "length": 6,
+        "difficulty": 3,
+        "reward_supplies": 10,
+        "reward_knowledge": 40,
+        "reward_influence": 10,
+        "base_stress": 30,
+        "unlock_requirement": {
+            "type": "knowledge",
+            "amount": 50
+        }
     }
 ]

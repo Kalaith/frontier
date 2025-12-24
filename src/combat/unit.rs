@@ -158,6 +158,16 @@ impl Unit {
         self.stress = (self.stress - amount).max(0);
     }
     
+    /// Heal HP up to max
+    pub fn heal(&mut self, amount: i32) {
+        self.hp = (self.hp + amount).min(self.max_hp);
+    }
+    
+    /// Clear all debuff status effects
+    pub fn clear_debuffs(&mut self) {
+        self.statuses.retain(|s| !s.is_debuff());
+    }
+    
     pub fn add_status(&mut self, effect: StatusEffect) {
         // Check if existing status of same type, extend duration or value?
         // Simple simplified rule: Add to list. (Duplicates stack intensity?)

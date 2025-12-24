@@ -87,6 +87,7 @@ pub struct PartyMemberState {
     pub max_hp: i32,
     pub stress: i32,
     pub image_path: Option<String>,
+    pub class_name: String,
 }
 
 impl PartyMemberState {
@@ -99,6 +100,7 @@ impl PartyMemberState {
             max_hp: adv.max_hp,
             stress: adv.stress,
             image_path: adv.image_path.clone(),
+            class_name: format!("{:?}", adv.class),
         }
     }
 }

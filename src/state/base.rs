@@ -346,8 +346,9 @@ impl BaseState {
             let party_mark = if is_in_party && !is_leader { "✓ " } else { "" };
             draw_text(&format!("[{}] {}{}{}", i + 1, leader_mark, party_mark, adv.name), roster_x + 10.0, y + 5.0, 20.0, name_color);
             
-            // Class and deck size
-            let deck_size = crate::combat::STARTER_DECK_IDS.len() + adv.deck_additions.len();
+            // Class and deck size (base deck is ~5 cards per class + additions)
+            let base_deck_size = 5; // Class cards + Any cards
+            let deck_size = base_deck_size + adv.deck_additions.len();
             draw_text(&format!("{:?} • {} cards", adv.class, deck_size), roster_x + 200.0, y + 5.0, 14.0, GRAY);
             
             // Stats bar

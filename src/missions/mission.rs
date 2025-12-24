@@ -4,6 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 use crate::data::load_asset;
+use crate::kingdom::UnlockRequirement;
 
 /// Mission types from the GDD
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -16,6 +17,34 @@ pub enum MissionType {
     Secure,
     /// Narrative events, high stress
     Investigate,
+}
+
+/// Type of encounter at a mission node
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum NodeType {
+    /// Combat encounter
+    Combat,
+    /// Narrative event with choices
+    Event,
+    /// Safe rest point
+    Rest,
+    /// Boss encounter (end of mission)
+    Boss,
+}
+
+/// A node in a mission map (supports branching paths)
+#[derive(Clone, Debug)]
+pub struct MapNode {
+    /// Unique ID within this mission
+    pub id: usize,
+    /// What happens at this node
+    pub node_type: NodeType,
+    /// Which nodes can be reached from here (indices into the map)
+    pub connections: Vec<usize>,
+    /// Row/layer in the map (for drawing)
+    pub layer: usize,
+    /// Position within the layer (0 = left, higher = right)
+    pub position: usize,
 }
 
 /// A mission available to undertake
@@ -40,6 +69,10 @@ pub struct Mission {
     
     /// Stress this mission is likely to cause
     pub base_stress: i32,
+    
+    /// Requirement to unlock this mission
+    #[serde(default)]
+    pub unlock_requirement: UnlockRequirement,
 }
 
 impl Mission {
@@ -57,6 +90,7 @@ impl Mission {
             reward_knowledge: 15,
             reward_influence: 0,
             base_stress: 8,
+            unlock_requirement: UnlockRequirement::None,
         }
     }
     
@@ -74,7 +108,182 @@ impl Mission {
             reward_knowledge: 5,
             reward_influence: 10,
             base_stress: 15,
+            unlock_requirement: UnlockRequirement::None,
         }
+    }
+    
+    /// Generate node types for this mission based on mission type
+    /// Returns a Vec of NodeTypes, one for each node in the mission
+    /// Note: Kept for potential fallback; replaced by generate_branching_map
+    #[allow(dead_code)]
+    pub fn generate_node_types(&self) -> Vec<NodeType> {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+        
+        // Combat probability based on mission type
+        let combat_chance = match self.mission_type {
+            MissionType::Scout => 0.25,       // 25% combat
+            MissionType::Suppress => 0.60,    // 60% combat
+            MissionType::Secure => 0.40,      // 40% combat
+            MissionType::Investigate => 0.20, // 20% combat
+        };
+        
+        let mut nodes = Vec::with_capacity(self.length);
+        
+        for i in 0..self.length {
+            // First node is always an event (arrival)
+            if i == 0 {
+                nodes.push(NodeType::Event);
+                continue;
+            }
+            
+            // Last node: Boss for Suppress, Event for others
+            if i == self.length - 1 {
+                let final_node = match self.mission_type {
+                    MissionType::Suppress => NodeType::Boss,
+                    _ => NodeType::Event,
+                };
+                nodes.push(final_node);
+                continue;
+            }
+            
+            // Middle nodes: random based on combat chance
+            // Add rest points occasionally (every 3rd-4th node if not combat)
+            let roll: f32 = rng.gen();
+            if roll < combat_chance {
+                nodes.push(NodeType::Combat);
+            } else if i > 0 && i % 3 == 0 {
+                // Every 3rd node that isn't combat could be a rest
+                let rest_roll: f32 = rng.gen();
+                if rest_roll < 0.3 {
+                    nodes.push(NodeType::Rest);
+                } else {
+                    nodes.push(NodeType::Event);
+                }
+            } else {
+                nodes.push(NodeType::Event);
+            }
+        }
+        
+        nodes
+    }
+    
+    /// Get effective difficulty for combat (Suppress = harder, Scout = easier)
+    pub fn combat_difficulty(&self) -> i32 {
+        match self.mission_type {
+            MissionType::Scout => self.difficulty.saturating_sub(1).max(1),
+            MissionType::Suppress => self.difficulty + 1,
+            _ => self.difficulty,
+        }
+    }
+    
+    /// Generate a branching map for this mission
+    /// Returns a Vec of MapNodes forming a layered graph
+    pub fn generate_branching_map(&self) -> Vec<MapNode> {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+        
+        let num_layers = self.length;
+        let mut nodes: Vec<MapNode> = Vec::new();
+        let mut node_id = 0;
+        
+        // Combat probability based on mission type
+        let combat_chance = match self.mission_type {
+            MissionType::Scout => 0.25,
+            MissionType::Suppress => 0.60,
+            MissionType::Secure => 0.40,
+            MissionType::Investigate => 0.20,
+        };
+        
+        // Track node indices at each layer for connecting
+        let mut layer_nodes: Vec<Vec<usize>> = Vec::new();
+        
+        for layer in 0..num_layers {
+            // Determine how many nodes in this layer
+            // First and last layers have 1 node, middle layers have 1-3
+            let nodes_in_layer = if layer == 0 || layer == num_layers - 1 {
+                1
+            } else {
+                // More branches for longer missions
+                let max_branches = if self.length >= 6 { 3 } else { 2 };
+                rng.gen_range(1..=max_branches)
+            };
+            
+            let mut layer_node_indices = Vec::new();
+            
+            for pos in 0..nodes_in_layer {
+                // Determine node type
+                let node_type = if layer == 0 {
+                    NodeType::Event  // Start is always event
+                } else if layer == num_layers - 1 {
+                    match self.mission_type {
+                        MissionType::Suppress => NodeType::Boss,
+                        _ => NodeType::Event,
+                    }
+                } else {
+                    // Random based on mission type
+                    let roll: f32 = rng.gen();
+                    if roll < combat_chance {
+                        NodeType::Combat
+                    } else if layer % 3 == 0 && rng.gen::<f32>() < 0.3 {
+                        NodeType::Rest
+                    } else {
+                        NodeType::Event
+                    }
+                };
+                
+                let node = MapNode {
+                    id: node_id,
+                    node_type,
+                    connections: Vec::new(),  // Will be filled in next pass
+                    layer,
+                    position: pos,
+                };
+                
+                layer_node_indices.push(node_id);
+                nodes.push(node);
+                node_id += 1;
+            }
+            
+            layer_nodes.push(layer_node_indices);
+        }
+        
+        // Connect layers - each node connects to 1-2 nodes in next layer
+        for layer in 0..num_layers.saturating_sub(1) {
+            let current_layer = &layer_nodes[layer];
+            let next_layer = &layer_nodes[layer + 1];
+            
+            for &node_idx in current_layer {
+                // Connect to at least one node in next layer
+                let num_connections = if next_layer.len() == 1 {
+                    1
+                } else {
+                    rng.gen_range(1..=2.min(next_layer.len()))
+                };
+                
+                // Pick which nodes to connect to
+                let mut available: Vec<usize> = next_layer.clone();
+                for _ in 0..num_connections {
+                    if available.is_empty() { break; }
+                    let pick = rng.gen_range(0..available.len());
+                    nodes[node_idx].connections.push(available[pick]);
+                    available.remove(pick);
+                }
+            }
+            
+            // Ensure all nodes in next layer are reachable
+            for &next_node in next_layer {
+                let has_incoming = current_layer.iter()
+                    .any(|&n| nodes[n].connections.contains(&next_node));
+                if !has_incoming && !current_layer.is_empty() {
+                    // Add connection from random node in current layer
+                    let from = current_layer[rng.gen_range(0..current_layer.len())];
+                    nodes[from].connections.push(next_node);
+                }
+            }
+        }
+        
+        nodes
     }
 }
 

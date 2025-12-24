@@ -3,7 +3,7 @@
 use macroquad::prelude::*;
 use super::{StateTransition, ResultState, MissionState};
 use crate::combat::{Unit, Card, CombatResolver};
-use crate::missions::Mission;
+use crate::missions::{Mission, MapNode};
 use crate::kingdom::PartyMemberState;
 use crate::data::random_enemy_for_difficulty;
 
@@ -33,6 +33,10 @@ pub struct MissionContext {
     pub mission: Mission,
     pub current_node: usize,
     pub party_members: Vec<PartyMemberState>,
+    /// The generated map nodes for this mission run
+    pub map_nodes: Vec<MapNode>,
+    /// Nodes that have been visited
+    pub visited_nodes: Vec<usize>,
 }
 
 impl MissionContext {
@@ -98,13 +102,20 @@ impl CombatState {
         
         let party_size = players.len();
         
-        // Get random enemy based on mission difficulty
-        let enemy = random_enemy_for_difficulty(context.mission.difficulty);
+        // Get the current player's class to load appropriate cards
+        let class_name = context.party_members.first()
+            .map(|m| m.class_name.as_str())
+            .unwrap_or("Soldier");
+        let hand = Card::starter_hand_for_class(class_name);
+        
+        // Get random enemy based on mission difficulty (scaled by mission type)
+        let enemy = random_enemy_for_difficulty(context.mission.combat_difficulty());
         
         Self {
             players,
             current_player_idx: 0,
             enemy,
+            hand,
             return_mission: Some(context),
             damage_taken: vec![0; party_size],
             stress_gained: vec![0; party_size],
@@ -167,21 +178,25 @@ impl CombatState {
             // Victory - return to mission if we came from one
             if let Some(ctx) = &self.return_mission {
                 // Update party member states with current HP/stress
-                let updated_members: Vec<PartyMemberState> = self.players.iter().map(|p| {
+                let updated_members: Vec<PartyMemberState> = self.players.iter().enumerate().map(|(i, p)| {
+                    let orig = ctx.party_members.get(i);
                     PartyMemberState {
-                        id: ctx.party_members.iter().find(|m| m.name == p.name).map(|m| m.id.clone()).unwrap_or_default(),
+                        id: orig.map(|m| m.id.clone()).unwrap_or_default(),
                         name: p.name.clone(),
                         hp: p.hp,
                         max_hp: p.max_hp,
                         stress: p.stress,
                         image_path: p.image_path.clone(),
+                        class_name: orig.map(|m| m.class_name.clone()).unwrap_or_else(|| "Soldier".to_string()),
                     }
                 }).collect();
                 
                 let mission_state = MissionState::from_mission_with_party(
                     ctx.mission.clone(),
                     updated_members,
-                ).with_node(ctx.current_node);
+                ).with_node(ctx.current_node)
+                 .with_map_nodes(ctx.map_nodes.clone())
+                 .with_visited(ctx.visited_nodes.clone());
                 return Some(StateTransition::ToMission(mission_state));
             } else {
                 // Not from mission - just show simple victory
@@ -287,7 +302,13 @@ impl CombatState {
         // Next Turn
         self.turn += 1;
         self.energy = self.max_energy;
-        self.hand = Card::starter_hand(); // Draws from JSON-loaded deck
+        
+        // Draw class-appropriate cards for current player
+        let class_name = self.return_mission.as_ref()
+            .and_then(|ctx| ctx.party_members.get(self.current_player_idx))
+            .map(|m| m.class_name.as_str())
+            .unwrap_or("Soldier");
+        self.hand = Card::starter_hand_for_class(class_name);
         
         // Roll new enemy intent for next turn
         self.enemy.roll_intent(self.turn);

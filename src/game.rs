@@ -67,7 +67,30 @@ impl Game {
             load_texture(path).await.ok()
         }
         
-        // Character images
+        // Helper to load textures from a JSON file by extracting image_path fields
+        async fn load_textures_from_json(
+            json_path: &str, 
+            field_name: &str,
+            textures: &mut HashMap<String, Texture2D>
+        ) {
+            if let Ok(json_str) = std::fs::read_to_string(json_path) {
+                if let Ok(items) = serde_json::from_str::<Vec<serde_json::Value>>(&json_str) {
+                    for item in items {
+                        if let Some(path) = item.get(field_name).and_then(|v| v.as_str()) {
+                            if let Some(tex) = load_texture(path).await.ok() {
+                                textures.insert(path.to_string(), tex);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Load all textures from JSON data files
+        load_textures_from_json("assets/cards.json", "image_path", &mut textures).await;
+        load_textures_from_json("assets/enemies.json", "image_path", &mut textures).await;
+        
+        // Character images (adventurers are generated, not from JSON)
         let char_images = [
             "soldier_male", "soldier_female", 
             "scout_male", "scout_female", 
@@ -76,27 +99,6 @@ impl Game {
         ];
         for name in char_images {
             let path = format!("assets/images/characters/{}.png", name);
-            if let Some(tex) = load_tex(&path).await {
-                textures.insert(path, tex);
-            }
-        }
-        
-        // Enemy images
-        let enemy_images = ["forest_beast", "wild_boar", "shadow_wolf", "corrupted_treant"];
-        for name in enemy_images {
-            let path = format!("assets/images/enemies/{}.png", name);
-            if let Some(tex) = load_tex(&path).await {
-                textures.insert(path, tex);
-            }
-        }
-        
-        // Card images
-        let card_images = [
-            "strike", "guard", "focused_blow", "brace", "desperate_swing",
-            "measured_strike", "recenter", "opportunistic_cut", "hold_the_line", "last_ditch_effort"
-        ];
-        for name in card_images {
-            let path = format!("assets/images/cards/{}.png", name);
             if let Some(tex) = load_tex(&path).await {
                 textures.insert(path, tex);
             }
@@ -147,7 +149,7 @@ impl Game {
                 }
             }
             GameState::MissionSelect(state) => {
-                if let Some(transition) = state.update(&self.roster) {
+                if let Some(transition) = state.update(&self.roster, &self.kingdom) {
                     self.transition(transition);
                 }
             }
@@ -183,7 +185,7 @@ impl Game {
     pub fn draw(&self) {
         match &self.state {
             GameState::Base(state) => state.draw(&self.kingdom, &self.roster, &self.textures),
-            GameState::MissionSelect(state) => state.draw(&self.textures),
+            GameState::MissionSelect(state) => state.draw(&self.kingdom, &self.textures),
             GameState::Mission(state) => state.draw(&self.textures),
             GameState::Combat(state) => state.draw(&self.textures),
             GameState::Results(state) => state.draw(&self.textures),

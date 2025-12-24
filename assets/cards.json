@@ -3,7 +3,8 @@
     "id": "strike",
     "name": "Strike",
     "cost": 1,
-    "description": "Deal 6 damage. Baseline reference card.",
+    "description": "Deal 6 damage.",
+    "class": "Any",
     "effects": [
       {
         "Damage": 6
@@ -15,7 +16,8 @@
     "id": "guard",
     "name": "Guard",
     "cost": 1,
-    "description": "Gain 5 Block. Basic survival pacing.",
+    "description": "Gain 5 Block.",
+    "class": "Any",
     "effects": [
       {
         "Block": 5
@@ -24,67 +26,11 @@
     "image_path": "assets/images/cards/guard.png"
   },
   {
-    "id": "focused_blow",
-    "name": "Focused Blow",
-    "cost": 1,
-    "description": "Deal 4 damage. If target has no Block, deal +3.",
-    "effects": [
-      {
-        "DamageIfNoBlock": {
-          "base": 4,
-          "bonus": 3
-        }
-      }
-    ],
-    "image_path": "assets/images/cards/focused_blow.png"
-  },
-  {
-    "id": "brace",
-    "name": "Brace",
-    "cost": 1,
-    "description": "Gain 3 Block. Reduce incoming Stress 50% this turn.",
-    "effects": [
-      {
-        "Block": 3
-      },
-      {
-        "StressResistance": 50
-      }
-    ],
-    "image_path": "assets/images/cards/brace.png"
-  },
-  {
-    "id": "desperate_swing",
-    "name": "Desperate Swing",
-    "cost": 0,
-    "description": "Deal 5 damage. Gain 5 Stress.",
-    "effects": [
-      {
-        "Damage": 5
-      },
-      {
-        "SelfStress": 5
-      }
-    ],
-    "image_path": "assets/images/cards/desperate_swing.png"
-  },
-  {
-    "id": "measured_strike",
-    "name": "Measured Strike",
-    "cost": 2,
-    "description": "Deal 10 damage. Tempo control.",
-    "effects": [
-      {
-        "Damage": 10
-      }
-    ],
-    "image_path": "assets/images/cards/measured_strike.png"
-  },
-  {
     "id": "recenter",
     "name": "Recenter",
     "cost": 1,
     "description": "Reduce Stress by 6.",
+    "class": "Any",
     "effects": [
       {
         "ReduceStress": 6
@@ -93,57 +39,37 @@
     "image_path": "assets/images/cards/recenter.png"
   },
   {
-    "id": "opportunistic_cut",
-    "name": "Opportunistic Cut",
-    "cost": 1,
-    "description": "Deal 5 damage. +4 if enemy acted last turn.",
-    "effects": [
-      {
-        "DamageIfEnemyActed": {
-          "base": 5,
-          "bonus": 4
-        }
-      }
-    ],
-    "image_path": "assets/images/cards/opportunistic_cut.png"
-  },
-  {
-    "id": "hold_the_line",
-    "name": "Hold the Line",
+    "id": "shield_wall",
+    "name": "Shield Wall",
     "cost": 2,
-    "description": "Gain 8 Block. Cannot play Attacks this turn.",
+    "description": "Gain 12 Block.",
+    "class": "Soldier",
     "effects": [
       {
-        "Block": 8
-      },
-      "DisableAttacks"
-    ],
-    "image_path": "assets/images/cards/hold_the_line.png"
-  },
-  {
-    "id": "last_ditch_effort",
-    "name": "Last Ditch Effort",
-    "cost": 1,
-    "description": "Deal 8 damage. +6 if HP below 30%. Gain 3 Stress.",
-    "effects": [
-      {
-        "DamageIfLowHp": {
-          "base": 8,
-          "bonus": 6,
-          "threshold_percent": 30
-        }
-      },
-      {
-        "SelfStress": 3
+        "Block": 12
       }
     ],
-    "image_path": "assets/images/cards/last_ditch_effort.png"
+    "image_path": "assets/images/cards/shield_wall.png"
+  },
+  {
+    "id": "heavy_strike",
+    "name": "Heavy Strike",
+    "cost": 2,
+    "description": "Deal 12 damage.",
+    "class": "Soldier",
+    "effects": [
+      {
+        "Damage": 12
+      }
+    ],
+    "image_path": "assets/images/cards/heavy_strike.png"
   },
   {
     "id": "shield_bash",
     "name": "Shield Bash",
     "cost": 2,
     "description": "Deal 3 damage. Stun enemy for 1 turn.",
+    "class": "Soldier",
     "effects": [
       {
         "Damage": 3
@@ -160,10 +86,25 @@
     "image_path": "assets/images/cards/shield_bash.png"
   },
   {
+    "id": "hold_the_line",
+    "name": "Hold the Line",
+    "cost": 2,
+    "description": "Gain 10 Block. Cannot play Attacks this turn.",
+    "class": "Soldier",
+    "effects": [
+      {
+        "Block": 10
+      },
+      "DisableAttacks"
+    ],
+    "image_path": "assets/images/cards/hold_the_line.png"
+  },
+  {
     "id": "intimidate",
     "name": "Intimidate",
     "cost": 1,
-    "description": "Apply Vulnerable (50% more dmg taken) for 2 turns.",
+    "description": "Apply Vulnerable (50% more dmg) for 2 turns.",
+    "class": "Soldier",
     "effects": [
       {
         "ApplyStatus": {
@@ -175,5 +116,272 @@
       }
     ],
     "image_path": "assets/images/cards/intimidate.png"
+  },
+  {
+    "id": "quick_slash",
+    "name": "Quick Slash",
+    "cost": 0,
+    "description": "Deal 3 damage.",
+    "class": "Scout",
+    "effects": [
+      {
+        "Damage": 3
+      }
+    ],
+    "image_path": "assets/images/cards/quick_slash.png"
+  },
+  {
+    "id": "backstab",
+    "name": "Backstab",
+    "cost": 1,
+    "description": "Deal 4 damage. +6 if target has Vulnerable.",
+    "class": "Scout",
+    "effects": [
+      {
+        "DamageIfVulnerable": {
+          "base": 4,
+          "bonus": 6
+        }
+      }
+    ],
+    "image_path": "assets/images/cards/backstab.png"
+  },
+  {
+    "id": "evasion",
+    "name": "Evasion",
+    "cost": 1,
+    "description": "Gain 4 Block. Draw 1 card.",
+    "class": "Scout",
+    "effects": [
+      {
+        "Block": 4
+      },
+      {
+        "DrawCards": 1
+      }
+    ],
+    "image_path": "assets/images/cards/evasion.png"
+  },
+  {
+    "id": "poison_blade",
+    "name": "Poison Blade",
+    "cost": 1,
+    "description": "Deal 2 damage. Apply Poison (3 dmg/turn) for 3 turns.",
+    "class": "Scout",
+    "effects": [
+      {
+        "Damage": 2
+      },
+      {
+        "ApplyStatus": {
+          "effect_type": "Poison",
+          "duration": 3,
+          "value": 3,
+          "target_self": false
+        }
+      }
+    ],
+    "image_path": "assets/images/cards/poison_blade.png"
+  },
+  {
+    "id": "opportunistic_cut",
+    "name": "Opportunistic Cut",
+    "cost": 1,
+    "description": "Deal 5 damage. +4 if enemy acted last turn.",
+    "class": "Scout",
+    "effects": [
+      {
+        "DamageIfEnemyActed": {
+          "base": 5,
+          "bonus": 4
+        }
+      }
+    ],
+    "image_path": "assets/images/cards/opportunistic_cut.png"
+  },
+  {
+    "id": "heal",
+    "name": "Heal",
+    "cost": 1,
+    "description": "Restore 8 HP to self.",
+    "class": "Healer",
+    "effects": [
+      {
+        "Heal": 8
+      }
+    ],
+    "image_path": "assets/images/cards/heal.png"
+  },
+  {
+    "id": "greater_heal",
+    "name": "Greater Heal",
+    "cost": 2,
+    "description": "Restore 15 HP to self.",
+    "class": "Healer",
+    "effects": [
+      {
+        "Heal": 15
+      }
+    ],
+    "image_path": "assets/images/cards/greater_heal.png"
+  },
+  {
+    "id": "purify",
+    "name": "Purify",
+    "cost": 1,
+    "description": "Remove all negative status effects from self.",
+    "class": "Healer",
+    "effects": [
+      "ClearDebuffs"
+    ],
+    "image_path": "assets/images/cards/purify.png"
+  },
+  {
+    "id": "calming_light",
+    "name": "Calming Light",
+    "cost": 1,
+    "description": "Reduce Stress by 10.",
+    "class": "Healer",
+    "effects": [
+      {
+        "ReduceStress": 10
+      }
+    ],
+    "image_path": "assets/images/cards/calming_light.png"
+  },
+  {
+    "id": "holy_shield",
+    "name": "Holy Shield",
+    "cost": 2,
+    "description": "Gain 6 Block. Heal 4 HP.",
+    "class": "Healer",
+    "effects": [
+      {
+        "Block": 6
+      },
+      {
+        "Heal": 4
+      }
+    ],
+    "image_path": "assets/images/cards/holy_shield.png"
+  },
+  {
+    "id": "smite",
+    "name": "Smite",
+    "cost": 1,
+    "description": "Deal 5 damage. Heal 2 HP.",
+    "class": "Healer",
+    "effects": [
+      {
+        "Damage": 5
+      },
+      {
+        "Heal": 2
+      }
+    ],
+    "image_path": "assets/images/cards/smite.png"
+  },
+  {
+    "id": "arcane_bolt",
+    "name": "Arcane Bolt",
+    "cost": 1,
+    "description": "Deal 8 damage.",
+    "class": "Mystic",
+    "effects": [
+      {
+        "Damage": 8
+      }
+    ],
+    "image_path": "assets/images/cards/arcane_bolt.png"
+  },
+  {
+    "id": "fireball",
+    "name": "Fireball",
+    "cost": 3,
+    "description": "Deal 20 damage. Apply Burn (2 dmg/turn) for 2 turns.",
+    "class": "Mystic",
+    "effects": [
+      {
+        "Damage": 20
+      },
+      {
+        "ApplyStatus": {
+          "effect_type": "Burn",
+          "duration": 2,
+          "value": 2,
+          "target_self": false
+        }
+      }
+    ],
+    "image_path": "assets/images/cards/fireball.png"
+  },
+  {
+    "id": "frost_shield",
+    "name": "Frost Shield",
+    "cost": 1,
+    "description": "Gain 4 Block. Apply Weak to enemy for 1 turn.",
+    "class": "Mystic",
+    "effects": [
+      {
+        "Block": 4
+      },
+      {
+        "ApplyStatus": {
+          "effect_type": "Weak",
+          "duration": 1,
+          "value": 0,
+          "target_self": false
+        }
+      }
+    ],
+    "image_path": "assets/images/cards/frost_shield.png"
+  },
+  {
+    "id": "channel_energy",
+    "name": "Channel Energy",
+    "cost": 0,
+    "description": "Gain 1 Energy. Draw 1 card.",
+    "class": "Mystic",
+    "effects": [
+      {
+        "GainEnergy": 1
+      },
+      {
+        "DrawCards": 1
+      }
+    ],
+    "image_path": "assets/images/cards/channel_energy.png"
+  },
+  {
+    "id": "mind_blast",
+    "name": "Mind Blast",
+    "cost": 2,
+    "description": "Deal 6 damage. Apply 5 Stress to enemy.",
+    "class": "Mystic",
+    "effects": [
+      {
+        "Damage": 6
+      },
+      {
+        "EnemyStress": 5
+      }
+    ],
+    "image_path": "assets/images/cards/mind_blast.png"
+  },
+  {
+    "id": "arcane_shield",
+    "name": "Arcane Shield",
+    "cost": 2,
+    "description": "Gain 8 Block. Gain 1 Energy next turn.",
+    "class": "Mystic",
+    "effects": [
+      {
+        "Block": 8
+      },
+      {
+        "GainEnergyNextTurn": 1
+      }
+    ],
+    "image_path": "assets/images/cards/arcane_shield.png"
   }
 ]

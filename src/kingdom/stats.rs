@@ -38,6 +38,9 @@ pub struct KingdomState {
     pub stats: KingdomStats,
     pub day: u32,
     pub buildings: Vec<crate::kingdom::Building>,
+    /// IDs of completed missions (for unlock requirements)
+    #[serde(default)]
+    pub completed_missions: Vec<String>,
 }
 
 impl Default for KingdomState {
@@ -46,6 +49,7 @@ impl Default for KingdomState {
             stats: KingdomStats::new(),
             day: 1,
             buildings: crate::kingdom::Building::all_starter(),
+            completed_missions: vec![],
         }
     }
 }

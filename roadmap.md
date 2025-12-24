@@ -18,8 +18,8 @@ This document outlines the path from current prototype to MVP (Minimum Viable Pr
 ### 1.2 Mission & Exploration (Priority: High)
 - [x] Linear Node Traversal.
 - [x] **Meaningful Events:** Implement non-combat nodes (Shrines, Treasures, Traps) with choices that affect HP/Stress/Resources.
-- [ ] **Map Variety:** Generate maps with branching paths (Slay the Spire style) instead of a purely linear line.
-- [ ] **Mission Types:** Implement logic for `Scout` vs `Suppress` missions (different lengths, enemy density).
+- [x] **Map Variety:** Generate maps with branching paths (Slay the Spire style) instead of a purely linear line.
+- [x] **Mission Types:** Implement logic for `Scout` vs `Suppress` missions (different lengths, enemy density).
 
 ### 1.3 Kingdom & Management (Priority: Medium)
 - [x] Basic Stats (Gold, Supplies).
@@ -50,11 +50,6 @@ This document outlines the path from current prototype to MVP (Minimum Viable Pr
 - [ ] **Enemy Variety:** 10+ Unique Enemies with distinct AI behaviors.
 - [ ] **Card Pool:** 30+ Cards (Unlockable via "Knowledge" resource).
 - [ ] **Biomes:** Add a second region (e.g., "The Ruins") with unique art and enemies.
-
-### 2.3 Visual & Audio Polish
-- [ ] **VFX:** Particle effects for hits, blocks, and buffs. Screen shake on heavy hits.
-- [ ] **SFX:** Sound effects for UI clicks, card plays, impacts.
-- [ ] **Music:** Ambient tracks for Base vs Combat.
 
 ---
 
