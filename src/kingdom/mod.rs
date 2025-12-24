@@ -7,7 +7,7 @@ mod adventurer;
 mod roster;
 mod party;
 
-pub use stats::{KingdomStats, KingdomState};
+pub use stats::KingdomState;
 pub use buildings::Building;
 pub use adventurer::{Adventurer, AdventurerClass, Gender, StatusEffect, StatusType};
 pub use roster::Roster;

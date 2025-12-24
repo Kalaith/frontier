@@ -11,7 +11,9 @@ use super::{StateTransition, MissionState};
 pub struct EventState {
     pub event: Event,
     pub selected_choice: usize,
+    #[allow(dead_code)]
     pub adventurer_id: String,
+    #[allow(dead_code)]
     pub adventurer_name: String,
     pub return_to_mission: bool,
     /// Applied outcomes to pass back

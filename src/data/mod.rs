@@ -3,14 +3,13 @@
 //! All game content is data-driven. This module handles loading from JSON files.
 
 use std::fs;
-use std::path::Path;
 use serde::de::DeserializeOwned;
 
 pub mod cards;
 pub mod enemies;
 
-pub use cards::CardData;
-pub use enemies::{EnemyData, random_enemy_for_difficulty};
+pub use enemies::random_enemy_for_difficulty;
+// CardData and EnemyData are used internally
 
 /// Load any JSON data file into a deserializable type
 pub fn load_json<T: DeserializeOwned>(path: &str) -> Result<T, String> {
@@ -25,10 +24,4 @@ pub fn load_json<T: DeserializeOwned>(path: &str) -> Result<T, String> {
 pub fn load_asset<T: DeserializeOwned>(filename: &str) -> Result<T, String> {
     let path = format!("assets/{}", filename);
     load_json(&path)
-}
-
-/// Check if a data file exists
-pub fn asset_exists(filename: &str) -> bool {
-    let path = format!("assets/{}", filename);
-    Path::new(&path).exists()
 }

@@ -37,6 +37,7 @@ pub struct MissionContext {
 
 impl MissionContext {
     /// Get the leader
+    #[allow(dead_code)]
     pub fn leader(&self) -> Option<&PartyMemberState> {
         self.party_members.first()
     }
@@ -63,18 +64,21 @@ impl Default for CombatState {
 
 impl CombatState {
     /// Get the currently active player
+    #[allow(dead_code)]
     pub fn current_player(&self) -> Option<&Unit> {
         self.players.get(self.current_player_idx)
     }
     
     /// Get the currently active player mutably
+    #[allow(dead_code)]
     pub fn current_player_mut(&mut self) -> Option<&mut Unit> {
         self.players.get_mut(self.current_player_idx)
     }
     
     /// Create combat state for a specific adventurer (backwards compat)
-    pub fn for_adventurer(adventurer_id: &str, adventurer_name: &str) -> Self {
-        let mut player = Unit::new_player(adventurer_name, 50);
+    #[allow(dead_code)]
+    pub fn for_adventurer(_adventurer_id: &str, adventurer_name: &str) -> Self {
+        let player = Unit::new_player(adventurer_name, 50);
         Self {
             players: vec![player],
             ..Default::default()

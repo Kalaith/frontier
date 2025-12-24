@@ -4,7 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
-/// A region in the wilds
+/// A region in the wilds (planned feature)
+#[allow(dead_code)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Region {
     pub id: String,
@@ -31,6 +32,7 @@ pub struct Region {
     pub traits_hidden: Vec<String>,
 }
 
+#[allow(dead_code)]
 impl Region {
     /// Create the starting Dark Woods region
     pub fn dark_woods() -> Self {
@@ -74,3 +76,4 @@ impl Region {
         self.threat_level = (self.threat_level + amount).min(100);
     }
 }
+

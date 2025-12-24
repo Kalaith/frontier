@@ -37,6 +37,7 @@ impl Roster {
     }
     
     /// Get all available adventurers (not injured, not too stressed)
+    #[allow(dead_code)]
     pub fn available(&self) -> Vec<&Adventurer> {
         self.adventurers
             .iter()
@@ -68,11 +69,13 @@ impl Roster {
     }
     
     /// Count living adventurers
+    #[allow(dead_code)]
     pub fn count(&self) -> usize {
         self.adventurers.len()
     }
     
     /// Count fallen adventurers
+    #[allow(dead_code)]
     pub fn fallen_count(&self) -> usize {
         self.graveyard.len()
     }

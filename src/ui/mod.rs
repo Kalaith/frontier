@@ -19,6 +19,7 @@ pub fn was_clicked(x: f32, y: f32, w: f32, h: f32) -> bool {
 }
 
 /// Check if a rectangle was just pressed (mouse down over it)
+#[allow(dead_code)]
 pub fn was_pressed(x: f32, y: f32, w: f32, h: f32) -> bool {
     is_mouse_over(x, y, w, h) && is_mouse_button_pressed(MouseButton::Left)
 }
@@ -53,6 +54,7 @@ pub fn button(text: &str, x: f32, y: f32, w: f32, h: f32) -> bool {
 }
 
 /// Draw a button with custom colors
+#[allow(dead_code)]
 pub fn button_colored(text: &str, x: f32, y: f32, w: f32, h: f32, base_color: Color) -> bool {
     let hovered = is_mouse_over(x, y, w, h);
     let pressed = hovered && is_mouse_button_down(MouseButton::Left);
@@ -92,6 +94,7 @@ pub fn button_colored(text: &str, x: f32, y: f32, w: f32, h: f32, base_color: Co
 }
 
 /// A clickable card/panel - returns true if clicked, also handles hover highlighting
+#[allow(dead_code)]
 pub struct ClickableRect {
     pub x: f32,
     pub y: f32,
@@ -99,6 +102,7 @@ pub struct ClickableRect {
     pub h: f32,
 }
 
+#[allow(dead_code)]
 impl ClickableRect {
     pub fn new(x: f32, y: f32, w: f32, h: f32) -> Self {
         Self { x, y, w, h }

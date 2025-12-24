@@ -86,16 +86,19 @@ impl Adventurer {
     }
     
     /// Check if adventurer is too stressed to deploy
+    #[allow(dead_code)]
     pub fn is_stressed(&self) -> bool {
         self.stress >= 50
     }
     
     /// Check if adventurer is injured
+    #[allow(dead_code)]
     pub fn is_injured(&self) -> bool {
         !self.injuries.is_empty()
     }
     
     /// Apply stress, potentially triggering trauma
+    #[allow(dead_code)]
     pub fn add_stress(&mut self, amount: i32) -> Option<Trauma> {
         self.stress += amount;
         
@@ -175,6 +178,7 @@ pub struct Injury {
 }
 
 impl Injury {
+    #[allow(dead_code)]
     pub fn wounded_leg() -> Self {
         Self {
             id: "wounded_leg".to_string(),
@@ -185,6 +189,7 @@ impl Injury {
         }
     }
     
+    #[allow(dead_code)]
     pub fn broken_arm() -> Self {
         Self {
             id: "broken_arm".to_string(),
@@ -204,6 +209,7 @@ pub struct Trauma {
 }
 
 impl Trauma {
+    #[allow(dead_code)]
     pub fn new(trauma_type: TraumaType) -> Self {
         Self {
             trauma_type,

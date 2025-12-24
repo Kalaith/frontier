@@ -12,7 +12,8 @@ pub struct ResultState {
     pub injuries: Vec<String>,
     pub rewards: Vec<String>,
     pub adventurer_id: String,
-    /// All party member IDs and their final states
+    /// All party member IDs and their final states (for future party-wide results)
+    #[allow(dead_code)]
     pub party_member_states: Vec<PartyMemberState>,
     /// Final HP after mission (if set, overrides hp_lost calculation)
     pub final_hp: Option<i32>,

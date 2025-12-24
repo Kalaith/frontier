@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
-use crate::kingdom::{KingdomState, KingdomStats, Roster};
+use crate::kingdom::{KingdomState, Roster};
 
 /// Version for save file compatibility
 const SAVE_VERSION: u32 = 1;

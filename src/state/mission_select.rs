@@ -15,6 +15,7 @@ pub struct MissionSelectState {
 
 impl MissionSelectState {
     /// Create mission select with a pre-selected adventurer (backwards compatible, single-person party)
+    #[allow(dead_code)]
     pub fn new(adventurer_id: String, adventurer_name: String, hp: i32, max_hp: i32, stress: i32, image: Option<String>) -> Self {
         let member = PartyMemberState {
             id: adventurer_id,
@@ -88,7 +89,7 @@ impl MissionSelectState {
         if is_key_pressed(KeyCode::Enter) {
             if let Some(mission) = self.missions.get(self.selected_mission) {
                 // Use leader's stats for primary mission state
-                if let Some(leader) = self.leader() {
+                if let Some(_leader) = self.leader() {
                     let mission_state = MissionState::from_mission_with_party(
                         mission.clone(),
                         self.party_members.clone(),

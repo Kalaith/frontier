@@ -31,11 +31,13 @@ impl MissionState {
     }
     
     /// Get mutable party leader
+    #[allow(dead_code)]
     pub fn leader_mut(&mut self) -> Option<&mut PartyMemberState> {
         self.party_members.first_mut()
     }
     
     /// Create a new mission with the given adventurer (simple version, backwards compat)
+    #[allow(dead_code)]
     pub fn new(adventurer_id: String, adventurer_name: String, adventurer_image: Option<String>) -> Self {
         let member = PartyMemberState {
             id: adventurer_id,
@@ -52,6 +54,7 @@ impl MissionState {
     }
     
     /// Create from a Mission object with adventurer info (backwards compat)
+    #[allow(dead_code)]
     pub fn from_mission(mission: Mission, adventurer_id: String, adventurer_name: String, image: Option<String>) -> Self {
         let member = PartyMemberState {
             id: adventurer_id,
@@ -69,6 +72,7 @@ impl MissionState {
     }
     
     /// Create from a Mission object with full adventurer stats (backwards compat)
+    #[allow(dead_code)]
     pub fn from_mission_with_stats(
         mission: Mission,
         adventurer_id: String,
@@ -109,6 +113,7 @@ impl MissionState {
     }
     
     /// Update party member state after combat
+    #[allow(dead_code)]
     pub fn update_member(&mut self, id: &str, hp: i32, stress: i32) {
         if let Some(member) = self.party_members.iter_mut().find(|m| m.id == id) {
             member.hp = hp;
@@ -123,7 +128,7 @@ impl MissionState {
             
             // Mission complete check first
             if self.current_node >= self.mission.length {
-                if let Some(leader) = self.leader() {
+                if let Some(_leader) = self.leader() {
                     let mut results = ResultState::victory_for_party(&self.party_members);
                     results.stress_gained = self.mission.base_stress;
                     results.rewards = vec![
