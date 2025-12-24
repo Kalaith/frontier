@@ -41,7 +41,7 @@ Lead a band of adventurers into the unknown wilds. Build your kingdom, recruit h
 ### Build & Run
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/frontier-kingdom.git
+git clone https://github.com/talast/frontier-kingdom.git
 cd frontier-kingdom
 
 # Run in development mode
