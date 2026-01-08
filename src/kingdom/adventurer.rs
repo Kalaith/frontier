@@ -137,11 +137,9 @@ impl Adventurer {
 
 /// Simple UUID generator (timestamp-based for uniqueness)
 fn uuid_simple() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
-    format!("adv_{}", now.as_nanos())
+    let now = macroquad::time::get_time();
+    // Convert to something resembling nanos/unique string
+    format!("adv_{}", (now * 1_000_000.0) as u64)
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

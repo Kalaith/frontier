@@ -3,7 +3,7 @@
 //! Expeditions are contracts with uncertainty.
 
 use serde::{Deserialize, Serialize};
-use crate::data::load_asset;
+// use crate::data::load_asset;
 use crate::kingdom::UnlockRequirement;
 
 /// Mission types from the GDD
@@ -117,8 +117,7 @@ impl Mission {
     /// Note: Kept for potential fallback; replaced by generate_branching_map
     #[allow(dead_code)]
     pub fn generate_node_types(&self) -> Vec<NodeType> {
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
+
         
         // Combat probability based on mission type
         let combat_chance = match self.mission_type {
@@ -149,12 +148,12 @@ impl Mission {
             
             // Middle nodes: random based on combat chance
             // Add rest points occasionally (every 3rd-4th node if not combat)
-            let roll: f32 = rng.gen();
+            let roll: f32 = macroquad_toolkit::rng::rand();
             if roll < combat_chance {
                 nodes.push(NodeType::Combat);
             } else if i > 0 && i % 3 == 0 {
                 // Every 3rd node that isn't combat could be a rest
-                let rest_roll: f32 = rng.gen();
+                let rest_roll: f32 = macroquad_toolkit::rng::rand();
                 if rest_roll < 0.3 {
                     nodes.push(NodeType::Rest);
                 } else {
@@ -180,8 +179,7 @@ impl Mission {
     /// Generate a branching map for this mission
     /// Returns a Vec of MapNodes forming a layered graph
     pub fn generate_branching_map(&self) -> Vec<MapNode> {
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
+
         
         let num_layers = self.length;
         let mut nodes: Vec<MapNode> = Vec::new();
@@ -206,7 +204,7 @@ impl Mission {
             } else {
                 // More branches for longer missions
                 let max_branches = if self.length >= 6 { 3 } else { 2 };
-                rng.gen_range(1..=max_branches)
+                macroquad_toolkit::rng::gen_range(1, max_branches + 1)
             };
             
             let mut layer_node_indices = Vec::new();
@@ -222,10 +220,10 @@ impl Mission {
                     }
                 } else {
                     // Random based on mission type
-                    let roll: f32 = rng.gen();
+                    let roll: f32 = macroquad_toolkit::rng::rand();
                     if roll < combat_chance {
                         NodeType::Combat
-                    } else if layer % 3 == 0 && rng.gen::<f32>() < 0.3 {
+                    } else if layer % 3 == 0 && macroquad_toolkit::rng::chance(0.3) {
                         NodeType::Rest
                     } else {
                         NodeType::Event
@@ -258,14 +256,14 @@ impl Mission {
                 let num_connections = if next_layer.len() == 1 {
                     1
                 } else {
-                    rng.gen_range(1..=2.min(next_layer.len()))
+                    macroquad_toolkit::rng::gen_range(1, 2.min(next_layer.len()) + 1)
                 };
                 
                 // Pick which nodes to connect to
                 let mut available: Vec<usize> = next_layer.clone();
                 for _ in 0..num_connections {
                     if available.is_empty() { break; }
-                    let pick = rng.gen_range(0..available.len());
+                    let pick = macroquad_toolkit::rng::gen_range(0, available.len());
                     nodes[node_idx].connections.push(available[pick]);
                     available.remove(pick);
                 }
@@ -277,7 +275,7 @@ impl Mission {
                     .any(|&n| nodes[n].connections.contains(&next_node));
                 if !has_incoming && !current_layer.is_empty() {
                     // Add connection from random node in current layer
-                    let from = current_layer[rng.gen_range(0..current_layer.len())];
+                    let from = current_layer[macroquad_toolkit::rng::gen_range(0, current_layer.len())];
                     nodes[from].connections.push(next_node);
                 }
             }
@@ -289,7 +287,7 @@ impl Mission {
 
 /// Load missions from the JSON asset file
 pub fn load_missions() -> Vec<Mission> {
-    match load_asset::<Vec<Mission>>("missions.json") {
+    match crate::load_asset!("missions.json", Vec<Mission>) {
         Ok(missions) => missions,
         Err(e) => {
             eprintln!("Warning: Could not load missions.json: {}", e);

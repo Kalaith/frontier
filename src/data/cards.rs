@@ -20,7 +20,7 @@ pub struct CardData {
 impl CardData {
     /// Load all cards from the cards.json asset file
     pub fn load_all() -> Result<Vec<CardData>, String> {
-        super::load_asset("cards.json")
+        crate::load_asset!("cards.json", Vec<CardData>)
     }
     
     /// Check if this card can be used by the given class name

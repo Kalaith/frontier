@@ -22,6 +22,8 @@ fn window_conf() -> Conf {
         window_width: 1280,
         window_height: 720,
         window_resizable: true,
+        sample_count: 0,
+        high_dpi: false,
         ..Default::default()
     }
 }

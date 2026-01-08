@@ -19,7 +19,7 @@ pub struct EnemyData {
 impl EnemyData {
     /// Load all enemies from the enemies.json asset file
     pub fn load_all() -> Result<Vec<EnemyData>, String> {
-        super::load_asset("enemies.json")
+        crate::load_asset!("enemies.json", Vec<EnemyData>)
     }
     
     /// Convert to a combat Unit
@@ -30,7 +30,7 @@ impl EnemyData {
 
 /// Get a random enemy appropriate for the given difficulty
 pub fn random_enemy_for_difficulty(difficulty: i32) -> Unit {
-    use rand::seq::SliceRandom;
+
     
     match EnemyData::load_all() {
         Ok(enemies) => {
@@ -46,8 +46,7 @@ pub fn random_enemy_for_difficulty(difficulty: i32) -> Unit {
                 }
             } else {
                 // Pick a random one
-                let mut rng = rand::thread_rng();
-                if let Some(enemy) = suitable.choose(&mut rng) {
+                if let Some(enemy) = macroquad_toolkit::rng::choose(&suitable) {
                     return enemy.to_unit();
                 }
             }

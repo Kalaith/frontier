@@ -67,28 +67,41 @@ impl Game {
             load_texture(path).await.ok()
         }
         
-        // Helper to load textures from a JSON file by extracting image_path fields
-        async fn load_textures_from_json(
-            json_path: &str, 
+        // Helper to parse textures from JSON string
+        async fn parse_textures_from_json(
+            json_str: &str, 
             field_name: &str,
             textures: &mut HashMap<String, Texture2D>
         ) {
-            if let Ok(json_str) = std::fs::read_to_string(json_path) {
-                if let Ok(items) = serde_json::from_str::<Vec<serde_json::Value>>(&json_str) {
-                    for item in items {
-                        if let Some(path) = item.get(field_name).and_then(|v| v.as_str()) {
-                            if let Some(tex) = load_texture(path).await.ok() {
-                                textures.insert(path.to_string(), tex);
-                            }
+            if let Ok(items) = serde_json::from_str::<Vec<serde_json::Value>>(json_str) {
+                for item in items {
+                    if let Some(path) = item.get(field_name).and_then(|v| v.as_str()) {
+                        if let Some(tex) = load_texture(path).await.ok() {
+                            textures.insert(path.to_string(), tex);
                         }
                     }
                 }
             }
         }
+
+        macro_rules! load_textures {
+            ($path:literal, $field:expr, $textures:expr) => {{
+                #[cfg(target_arch = "wasm32")]
+                let content = include_str!(concat!("../", $path));
+                
+                #[cfg(not(target_arch = "wasm32"))]
+                let content = match std::fs::read_to_string($path) {
+                    Ok(c) => c,
+                    Err(_) => include_str!(concat!("../", $path)).to_string(),
+                };
+
+                parse_textures_from_json(&content, $field, $textures).await;
+            }};
+        }
         
         // Load all textures from JSON data files
-        load_textures_from_json("assets/cards.json", "image_path", &mut textures).await;
-        load_textures_from_json("assets/enemies.json", "image_path", &mut textures).await;
+        load_textures!("assets/cards.json", "image_path", &mut textures);
+        load_textures!("assets/enemies.json", "image_path", &mut textures);
         
         // Character images (adventurers are generated, not from JSON)
         let char_images = [

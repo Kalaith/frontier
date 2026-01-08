@@ -2,14 +2,16 @@
 //!
 //! Human-readable JSON saves with version tracking.
 
+
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::Path;
+use std::path::PathBuf;
+use macroquad_toolkit::persistence::{save_json, load_json, get_app_data_path, file_exists};
 
 use crate::kingdom::{KingdomState, Roster};
 
 /// Version for save file compatibility
 const SAVE_VERSION: u32 = 1;
+const SAVE_FILE_NAME: &str = "frontier_kingdom_save.json";
 
 /// Complete save data structure
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -23,6 +25,9 @@ pub struct SaveData {
     pub total_missions: u32,
     pub total_deaths: u32,
 }
+
+// Enable toolkit persistence methods
+
 
 impl SaveData {
     /// Create a new save from current game state
@@ -39,28 +44,23 @@ impl SaveData {
         }
     }
     
+    fn get_save_path() -> PathBuf {
+        // Try to use app data path, fallback to local file "saves/save.json" for legacy reasons or "frontier_kingdom_save.json"
+        get_app_data_path("frontier_kingdom", SAVE_FILE_NAME)
+            .unwrap_or_else(|| PathBuf::from(SAVE_FILE_NAME))
+    }
+
     /// Save to a file
-    pub fn save(&self, path: &str) -> Result<(), String> {
-        let json = serde_json::to_string_pretty(self)
-            .map_err(|e| format!("Failed to serialize save: {}", e))?;
-        
-        fs::write(path, json)
-            .map_err(|e| format!("Failed to write save file: {}", e))?;
-        
-        Ok(())
+    pub fn save(&self, _path: &str) -> Result<(), String> {
+        // We ignore the passed path argument to enforce standard location, 
+        // or we could use it if we really wanted to support custom paths.
+        // For now, let's stick to the standard app data path for better cross-platform support.
+        save_json(Self::get_save_path(), self)
     }
     
     /// Load from a file
-    pub fn load(path: &str) -> Result<Self, String> {
-        if !Path::new(path).exists() {
-            return Err(format!("Save file not found: {}", path));
-        }
-        
-        let json = fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read save file: {}", e))?;
-        
-        let save: SaveData = serde_json::from_str(&json)
-            .map_err(|e| format!("Failed to parse save file: {}", e))?;
+    pub fn load(_path: &str) -> Result<Self, String> {
+        let save: SaveData = load_json(Self::get_save_path())?;
         
         // Version check
         if save.version > SAVE_VERSION {
@@ -74,22 +74,18 @@ impl SaveData {
     }
     
     /// Check if a save exists
-    pub fn exists(path: &str) -> bool {
-        Path::new(path).exists()
+    pub fn exists(_path: &str) -> bool {
+        file_exists(Self::get_save_path())
     }
     
-    /// Default save path
+    /// Default save path (kept for compatibility with callers, though we use `get_app_data_path` internally now)
     pub fn default_path() -> String {
-        "saves/save.json".to_string()
+        "legacy_path_ignored".to_string()
     }
 }
 
 /// Create saves directory if needed
+/// (Deprecated: toolkit handles directory creation)
 pub fn ensure_save_directory() -> Result<(), String> {
-    let dir = Path::new("saves");
-    if !dir.exists() {
-        fs::create_dir_all(dir)
-            .map_err(|e| format!("Failed to create saves directory: {}", e))?;
-    }
     Ok(())
 }
