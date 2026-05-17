@@ -2,15 +2,15 @@
 //!
 //! Human-readable JSON saves with version tracking.
 
-use macroquad_toolkit::persistence::{file_exists, get_app_data_path, load_json, save_json};
+use macroquad_toolkit::persistence::{json_key_exists, load_json_key, save_json_key};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 use crate::kingdom::{KingdomState, Roster};
 
 /// Version for save file compatibility
 const SAVE_VERSION: u32 = 1;
 const SAVE_FILE_NAME: &str = "frontier_kingdom_save.json";
+const GAME_NAME: &str = "frontier_kingdom";
 
 /// Complete save data structure
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -42,23 +42,14 @@ impl SaveData {
         }
     }
 
-    fn get_save_path() -> PathBuf {
-        // Try to use app data path, fallback to local file "saves/save.json" for legacy reasons or "frontier_kingdom_save.json"
-        get_app_data_path("frontier_kingdom", SAVE_FILE_NAME)
-            .unwrap_or_else(|| PathBuf::from(SAVE_FILE_NAME))
-    }
-
     /// Save to a file
     pub fn save(&self, _path: &str) -> Result<(), String> {
-        // We ignore the passed path argument to enforce standard location,
-        // or we could use it if we really wanted to support custom paths.
-        // For now, let's stick to the standard app data path for better cross-platform support.
-        save_json(Self::get_save_path(), self)
+        save_json_key(GAME_NAME, SAVE_FILE_NAME, self)
     }
 
     /// Load from a file
     pub fn load(_path: &str) -> Result<Self, String> {
-        let save: SaveData = load_json(Self::get_save_path())?;
+        let save: SaveData = load_json_key(GAME_NAME, SAVE_FILE_NAME)?;
 
         // Version check
         if save.version > SAVE_VERSION {
@@ -73,7 +64,7 @@ impl SaveData {
 
     /// Check if a save exists
     pub fn exists(_path: &str) -> bool {
-        file_exists(Self::get_save_path())
+        json_key_exists(GAME_NAME, SAVE_FILE_NAME)
     }
 
     /// Default save path (kept for compatibility with callers, though we use `get_app_data_path` internally now)
