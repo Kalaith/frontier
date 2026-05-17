@@ -1,8 +1,8 @@
 //! Results state - post-mission consequences and resolution
 
-use macroquad::prelude::*;
-use crate::kingdom::{KingdomState, Roster, PartyMemberState};
 use super::StateTransition;
+use crate::kingdom::{KingdomState, PartyMemberState, Roster};
+use macroquad::prelude::*;
 
 /// Post-mission results state
 pub struct ResultState {
@@ -34,30 +34,41 @@ impl ResultState {
             stress_gained: 5,
             hp_lost: 0,
             injuries: vec![],
-            rewards: vec!["20 Gold".to_string(), "10 Supplies".to_string(), "+5 Knowledge".to_string()],
+            rewards: vec![
+                "20 Gold".to_string(),
+                "10 Supplies".to_string(),
+                "+5 Knowledge".to_string(),
+            ],
             adventurer_id: adventurer_id.to_string(),
             party_member_states: vec![],
             final_hp: None,
             final_stress: None,
         }
     }
-    
+
     /// Create victory result for a full party
     pub fn victory_for_party(party_members: &[PartyMemberState]) -> Self {
-        let adventurer_id = party_members.first().map(|m| m.id.clone()).unwrap_or_default();
+        let adventurer_id = party_members
+            .first()
+            .map(|m| m.id.clone())
+            .unwrap_or_default();
         Self {
             victory: true,
             stress_gained: 5,
             hp_lost: 0,
             injuries: vec![],
-            rewards: vec!["20 Gold".to_string(), "10 Supplies".to_string(), "+5 Knowledge".to_string()],
+            rewards: vec![
+                "20 Gold".to_string(),
+                "10 Supplies".to_string(),
+                "+5 Knowledge".to_string(),
+            ],
             adventurer_id,
             party_member_states: party_members.to_vec(),
             final_hp: None,
             final_stress: None,
         }
     }
-    
+
     pub fn defeat_for(adventurer_id: &str) -> Self {
         Self {
             victory: false,
@@ -71,10 +82,13 @@ impl ResultState {
             final_stress: None,
         }
     }
-    
+
     /// Create defeat result for a full party
     pub fn defeat_for_party(party_members: &[PartyMemberState]) -> Self {
-        let adventurer_id = party_members.first().map(|m| m.id.clone()).unwrap_or_default();
+        let adventurer_id = party_members
+            .first()
+            .map(|m| m.id.clone())
+            .unwrap_or_default();
         Self {
             victory: false,
             stress_gained: 15,
@@ -87,8 +101,12 @@ impl ResultState {
             final_stress: None,
         }
     }
-    
-    pub fn update(&mut self, kingdom: &mut KingdomState, roster: &mut Roster) -> Option<StateTransition> {
+
+    pub fn update(
+        &mut self,
+        kingdom: &mut KingdomState,
+        roster: &mut Roster,
+    ) -> Option<StateTransition> {
         if is_key_pressed(KeyCode::Enter) {
             // Apply consequences to kingdom
             if self.victory {
@@ -98,14 +116,14 @@ impl ResultState {
             } else {
                 kingdom.stats.morale -= 10;
             }
-            
+
             // Check for death
             let is_dead = if let Some(final_hp) = self.final_hp {
                 final_hp <= 0
             } else {
                 false
             };
-            
+
             // Apply consequences to adventurer
             if is_dead {
                 roster.record_death(&self.adventurer_id);
@@ -116,48 +134,54 @@ impl ResultState {
                 } else {
                     adv.hp = (adv.hp - self.hp_lost).max(1);
                 }
-                
+
                 if let Some(final_stress) = self.final_stress {
                     adv.stress = final_stress.min(100);
                 } else {
                     adv.stress = (adv.stress + self.stress_gained).min(100);
                 }
-                
+
                 // Victory bonuses
                 if self.victory {
                     adv.missions_completed += 1;
                 }
             }
-            
+
             return Some(StateTransition::ToBase);
         }
-        
+
         None
     }
-    
+
     pub fn draw(&self, _textures: &std::collections::HashMap<String, Texture2D>) {
         let is_dead = self.final_hp.map_or(false, |hp| hp <= 0);
-        
+
         let title = if is_dead {
             "FALLEN IN BATTLE"
-        } else if self.victory { 
-            "MISSION COMPLETE" 
-        } else { 
-            "MISSION FAILED" 
+        } else if self.victory {
+            "MISSION COMPLETE"
+        } else {
+            "MISSION FAILED"
         };
         let title_color = if self.victory { GREEN } else { RED };
-        
+
         draw_text(title, 20.0, 60.0, 36.0, title_color);
-        
+
         let mut y = 120.0;
-        
+
         if is_dead {
             draw_text("The adventurer has perished.", 20.0, y, 24.0, RED);
             draw_text("Their name will be remembered.", 20.0, y + 30.0, 20.0, GRAY);
-            draw_text("[ENTER] Return to Kingdom", 20.0, screen_height() - 40.0, 20.0, GREEN);
+            draw_text(
+                "[ENTER] Return to Kingdom",
+                20.0,
+                screen_height() - 40.0,
+                20.0,
+                GREEN,
+            );
             return;
         }
-        
+
         // Show final stats if available
         if let Some(final_hp) = self.final_hp {
             draw_text(&format!("Final HP: {}", final_hp), 20.0, y, 20.0, GREEN);
@@ -166,15 +190,27 @@ impl ResultState {
             draw_text(&format!("HP Lost: -{}", self.hp_lost), 20.0, y, 20.0, RED);
             y += 30.0;
         }
-        
+
         if let Some(final_stress) = self.final_stress {
-            draw_text(&format!("Final Stress: {}", final_stress), 20.0, y, 20.0, ORANGE);
+            draw_text(
+                &format!("Final Stress: {}", final_stress),
+                20.0,
+                y,
+                20.0,
+                ORANGE,
+            );
             y += 30.0;
         } else {
-            draw_text(&format!("Stress Gained: +{}", self.stress_gained), 20.0, y, 20.0, ORANGE);
+            draw_text(
+                &format!("Stress Gained: +{}", self.stress_gained),
+                20.0,
+                y,
+                20.0,
+                ORANGE,
+            );
             y += 30.0;
         }
-        
+
         if !self.injuries.is_empty() {
             draw_text("Injuries:", 20.0, y, 20.0, RED);
             y += 25.0;
@@ -184,7 +220,7 @@ impl ResultState {
             }
             y += 10.0;
         }
-        
+
         if !self.rewards.is_empty() {
             draw_text("Rewards:", 20.0, y, 20.0, GREEN);
             y += 25.0;
@@ -193,7 +229,13 @@ impl ResultState {
                 y += 22.0;
             }
         }
-        
-        draw_text("[ENTER] Return to Kingdom", 20.0, screen_height() - 40.0, 20.0, GREEN);
+
+        draw_text(
+            "[ENTER] Return to Kingdom",
+            20.0,
+            screen_height() - 40.0,
+            20.0,
+            GREEN,
+        );
     }
 }

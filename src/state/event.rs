@@ -1,11 +1,11 @@
 //! Event state - narrative encounters with choices
 
+use super::{MissionState, StateTransition};
+use crate::kingdom::PartyMemberState;
+use crate::missions::events::{Event, EventOutcome};
+use crate::missions::Mission;
 use macroquad::prelude::*;
 use std::collections::HashMap;
-use crate::missions::events::{Event, EventOutcome};
-use crate::kingdom::PartyMemberState;
-use crate::missions::Mission;
-use super::{StateTransition, MissionState};
 
 /// State for handling mission events
 pub struct EventState {
@@ -52,9 +52,14 @@ impl EventState {
             mission_context: None,
         }
     }
-    
+
     /// Create event with mission context for returning
-    pub fn with_mission_context(mut self, mission: Mission, current_node: usize, party_members: Vec<PartyMemberState>) -> Self {
+    pub fn with_mission_context(
+        mut self,
+        mission: Mission,
+        current_node: usize,
+        party_members: Vec<PartyMemberState>,
+    ) -> Self {
         self.mission_context = Some(MissionReturnContext {
             mission,
             current_node,
@@ -62,7 +67,7 @@ impl EventState {
         });
         self
     }
-    
+
     pub fn update(&mut self) -> Option<StateTransition> {
         // Choice layout constants (must match draw)
         let panel_x = 100.0;
@@ -70,10 +75,10 @@ impl EventState {
         let panel_w = screen_width() - 200.0;
         let choices_y = panel_y + 200.0;
         let choice_height = 45.0;
-        
+
         // Choice selection
         let choice_count = self.event.choices.len();
-        
+
         // Keyboard navigation
         if is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W) {
             if self.selected_choice > 0 {
@@ -85,7 +90,7 @@ impl EventState {
                 self.selected_choice += 1;
             }
         }
-        
+
         // Number keys and mouse clicks
         for i in 0..choice_count.min(9) {
             let key = match i {
@@ -96,12 +101,12 @@ impl EventState {
                 4 => KeyCode::Key5,
                 _ => continue,
             };
-            
+
             // Keyboard
             if is_key_pressed(key) {
                 self.selected_choice = i;
             }
-            
+
             // Mouse click on choice
             let choice_y = choices_y + 35.0 + (i as f32 * 50.0) - 15.0;
             if crate::ui::was_clicked(panel_x + 20.0, choice_y, panel_w - 40.0, choice_height) {
@@ -113,15 +118,15 @@ impl EventState {
                 }
             }
         }
-        
+
         // Confirm choice with Enter
         if is_key_pressed(KeyCode::Enter) {
             return self.confirm_choice();
         }
-        
+
         None
     }
-    
+
     /// Confirm the currently selected choice and return transition
     fn confirm_choice(&mut self) -> Option<StateTransition> {
         if let Some(choice) = self.event.choices.get(self.selected_choice) {
@@ -143,7 +148,7 @@ impl EventState {
                 }
             }
             self.return_to_mission = true;
-            
+
             // Return to mission if we have context, otherwise go to base
             if let Some(ctx) = &self.mission_context {
                 // Apply HP/stress changes to party members
@@ -152,11 +157,10 @@ impl EventState {
                     member.hp = (member.hp + self.hp_change).min(member.max_hp).max(0);
                     member.stress = (member.stress + self.stress_change).min(100).max(0);
                 }
-                
-                let mission_state = MissionState::from_mission_with_party(
-                    ctx.mission.clone(),
-                    updated_members,
-                ).with_node(ctx.current_node);
+
+                let mission_state =
+                    MissionState::from_mission_with_party(ctx.mission.clone(), updated_members)
+                        .with_node(ctx.current_node);
                 return Some(StateTransition::ToMission(mission_state));
             } else {
                 return Some(StateTransition::ToBase);
@@ -164,23 +168,41 @@ impl EventState {
         }
         None
     }
-    
+
     pub fn draw(&self, _textures: &HashMap<String, Texture2D>) {
         // Darken background
-        draw_rectangle(0.0, 0.0, screen_width(), screen_height(), Color::from_rgba(0, 0, 0, 180));
-        
+        draw_rectangle(
+            0.0,
+            0.0,
+            screen_width(),
+            screen_height(),
+            Color::from_rgba(0, 0, 0, 180),
+        );
+
         // Event panel
         let panel_x = 100.0;
         let panel_y = 80.0;
         let panel_w = screen_width() - 200.0;
         let panel_h = screen_height() - 160.0;
-        
-        draw_rectangle(panel_x, panel_y, panel_w, panel_h, Color::from_rgba(30, 30, 40, 250));
+
+        draw_rectangle(
+            panel_x,
+            panel_y,
+            panel_w,
+            panel_h,
+            Color::from_rgba(30, 30, 40, 250),
+        );
         draw_rectangle_lines(panel_x, panel_y, panel_w, panel_h, 2.0, WHITE);
-        
+
         // Title
-        draw_text(&self.event.title, panel_x + 20.0, panel_y + 40.0, 32.0, YELLOW);
-        
+        draw_text(
+            &self.event.title,
+            panel_x + 20.0,
+            panel_y + 40.0,
+            32.0,
+            YELLOW,
+        );
+
         // Description
         let desc_y = panel_y + 80.0;
         // Simple word wrap
@@ -188,14 +210,14 @@ impl EventState {
         let words: Vec<&str> = self.event.description.split_whitespace().collect();
         let mut line = String::new();
         let mut y = desc_y;
-        
+
         for word in words {
             let test_line = if line.is_empty() {
                 word.to_string()
             } else {
                 format!("{} {}", line, word)
             };
-            
+
             // Rough estimate: 8 pixels per character at size 18
             if test_line.len() as f32 * 8.0 > max_width {
                 draw_text(&line, panel_x + 20.0, y, 18.0, LIGHTGRAY);
@@ -208,18 +230,19 @@ impl EventState {
         if !line.is_empty() {
             draw_text(&line, panel_x + 20.0, y, 18.0, LIGHTGRAY);
         }
-        
+
         // Choices
         let choices_y = panel_y + 200.0;
         draw_text("CHOOSE:", panel_x + 20.0, choices_y, 20.0, WHITE);
-        
+
         for (i, choice) in self.event.choices.iter().enumerate() {
             let y = choices_y + 35.0 + (i as f32 * 50.0);
             let choice_y = y - 15.0;
             let choice_h = 45.0;
             let is_selected = i == self.selected_choice;
-            let is_hovered = crate::ui::is_mouse_over(panel_x + 20.0, choice_y, panel_w - 40.0, choice_h);
-            
+            let is_hovered =
+                crate::ui::is_mouse_over(panel_x + 20.0, choice_y, panel_w - 40.0, choice_h);
+
             // Choice background with hover
             let bg_color = if is_selected {
                 Color::from_rgba(60, 80, 60, 255)
@@ -229,19 +252,45 @@ impl EventState {
                 Color::from_rgba(40, 40, 50, 255)
             };
             draw_rectangle(panel_x + 20.0, choice_y, panel_w - 40.0, choice_h, bg_color);
-            
+
             if is_selected {
-                draw_rectangle_lines(panel_x + 20.0, choice_y, panel_w - 40.0, choice_h, 2.0, GREEN);
+                draw_rectangle_lines(
+                    panel_x + 20.0,
+                    choice_y,
+                    panel_w - 40.0,
+                    choice_h,
+                    2.0,
+                    GREEN,
+                );
             } else if is_hovered {
-                draw_rectangle_lines(panel_x + 20.0, choice_y, panel_w - 40.0, choice_h, 1.0, LIGHTGRAY);
+                draw_rectangle_lines(
+                    panel_x + 20.0,
+                    choice_y,
+                    panel_w - 40.0,
+                    choice_h,
+                    1.0,
+                    LIGHTGRAY,
+                );
             }
-            
+
             // Choice text
             let text_color = if is_selected { WHITE } else { GRAY };
-            draw_text(&format!("[{}] {}", i + 1, choice.text), panel_x + 30.0, y + 10.0, 18.0, text_color);
+            draw_text(
+                &format!("[{}] {}", i + 1, choice.text),
+                panel_x + 30.0,
+                y + 10.0,
+                18.0,
+                text_color,
+            );
         }
-        
+
         // Instructions
-        draw_text("Click choice to select, click again to confirm • Or use [↑/↓] and [ENTER]", panel_x + 20.0, panel_y + panel_h - 30.0, 16.0, GREEN);
+        draw_text(
+            "Click choice to select, click again to confirm • Or use [↑/↓] and [ENTER]",
+            panel_x + 20.0,
+            panel_y + panel_h - 30.0,
+            16.0,
+            GREEN,
+        );
     }
 }

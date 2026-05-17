@@ -1,16 +1,16 @@
 //! Kingdom management modules
 
-mod stats;
-mod buildings;
-mod progression;
 mod adventurer;
-mod roster;
+mod buildings;
 mod party;
+mod progression;
+mod roster;
+mod stats;
 mod unlock;
 
-pub use stats::KingdomState;
-pub use buildings::Building;
 pub use adventurer::{Adventurer, AdventurerClass, Gender, StatusEffect, StatusType};
-pub use roster::Roster;
+pub use buildings::Building;
 pub use party::{Party, PartyMemberState, MAX_PARTY_SIZE};
+pub use roster::Roster;
+pub use stats::KingdomState;
 pub use unlock::UnlockRequirement;

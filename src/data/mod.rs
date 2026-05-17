@@ -3,7 +3,7 @@
 //! All game content is data-driven. This module handles loading from JSON files.
 
 // use std::fs;
-use serde::de::DeserializeOwned; // Still used in public signature? Yes load_asset macro uses generic type but maybe not? Warning said it was unused?
+// Still used in public signature? Yes load_asset macro uses generic type but maybe not? Warning said it was unused?
 // Warning said: warning: unused import: `serde::de::DeserializeOwned`
 // Ah, `load_json` and `load_asset` functions were removed/commented out effectively?
 // Wait, I replaced `load_json` and `load_asset` with a macro. The macro does NOT use `DeserializeOwned` trait bound on a function. It just calls `serde_json::from_str::<$type>`.
@@ -21,7 +21,7 @@ macro_rules! load_asset {
     ($filename:literal, $type:ty) => {{
         #[cfg(target_arch = "wasm32")]
         let content = include_str!(concat!("../../assets/", $filename));
-        
+
         #[cfg(not(target_arch = "wasm32"))]
         let content = match std::fs::read_to_string(concat!("assets/", $filename)) {
             Ok(c) => c,

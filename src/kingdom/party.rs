@@ -1,7 +1,7 @@
 //! Party management - groups of adventurers that go on missions together
 
-use serde::{Deserialize, Serialize};
 use super::adventurer::Adventurer;
+use serde::{Deserialize, Serialize};
 
 /// Maximum party size
 pub const MAX_PARTY_SIZE: usize = 4;
@@ -19,34 +19,34 @@ impl Party {
             member_ids: Vec::new(),
         }
     }
-    
+
     /// Create a party with a single leader
     pub fn with_leader(leader_id: &str) -> Self {
         Self {
             member_ids: vec![leader_id.to_string()],
         }
     }
-    
+
     /// Get the leader's ID (first member)
     pub fn leader_id(&self) -> Option<&str> {
         self.member_ids.first().map(|s| s.as_str())
     }
-    
+
     /// Check if party is full
     pub fn is_full(&self) -> bool {
         self.member_ids.len() >= MAX_PARTY_SIZE
     }
-    
+
     /// Check if party is empty
     pub fn is_empty(&self) -> bool {
         self.member_ids.is_empty()
     }
-    
+
     /// Number of members
     pub fn size(&self) -> usize {
         self.member_ids.len()
     }
-    
+
     /// Add a member to the party
     pub fn add_member(&mut self, id: &str) -> bool {
         if self.is_full() || self.member_ids.contains(&id.to_string()) {
@@ -55,7 +55,7 @@ impl Party {
         self.member_ids.push(id.to_string());
         true
     }
-    
+
     /// Remove a member from the party
     pub fn remove_member(&mut self, id: &str) -> bool {
         if let Some(pos) = self.member_ids.iter().position(|m| m == id) {
@@ -65,7 +65,7 @@ impl Party {
             false
         }
     }
-    
+
     /// Check if an adventurer is in the party
     pub fn contains(&self, id: &str) -> bool {
         self.member_ids.iter().any(|m| m == id)

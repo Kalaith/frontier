@@ -1,7 +1,7 @@
 //! Unlock requirements for regions and missions
 
-use serde::{Deserialize, Serialize};
 use crate::kingdom::KingdomState;
+use serde::{Deserialize, Serialize};
 
 /// Requirement to unlock a region or mission
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -23,18 +23,17 @@ impl UnlockRequirement {
     pub fn is_met(&self, kingdom: &KingdomState) -> bool {
         match self {
             UnlockRequirement::None => true,
-            UnlockRequirement::Building { building } => {
-                kingdom.buildings.iter().any(|b| &b.id == building && b.built)
-            }
-            UnlockRequirement::Knowledge { amount } => {
-                kingdom.stats.knowledge >= *amount
-            }
+            UnlockRequirement::Building { building } => kingdom
+                .buildings
+                .iter()
+                .any(|b| &b.id == building && b.built),
+            UnlockRequirement::Knowledge { amount } => kingdom.stats.knowledge >= *amount,
             UnlockRequirement::MissionComplete { mission_id } => {
                 kingdom.completed_missions.contains(mission_id)
             }
         }
     }
-    
+
     /// Get a human-readable description of the requirement
     pub fn description(&self) -> String {
         match self {

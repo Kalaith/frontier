@@ -10,23 +10,23 @@ pub struct Adventurer {
     pub class: AdventurerClass,
     #[serde(default = "default_gender")]
     pub gender: Gender,
-    
+
     // Stats
     pub hp: i32,
     pub max_hp: i32,
     pub stress: i32,
     pub level: i32,
     pub xp: i32,
-    
+
     // Persistent conditions
     pub traits: Vec<Trait>,
     pub injuries: Vec<Injury>,
     pub traumas: Vec<Trauma>,
     pub statuses: Vec<StatusEffect>,
-    
+
     // Cards this adventurer has unlocked/added
     pub deck_additions: Vec<String>, // Card IDs
-    
+
     // State
     pub available: bool,
     pub missions_completed: u32,
@@ -46,13 +46,13 @@ impl Adventurer {
             AdventurerClass::Healer => 30,
             AdventurerClass::Mystic => 32,
         };
-        
+
         // Select image based on class and gender
         let gender_suffix = match gender {
             Gender::Male => "male",
             Gender::Female => "female",
         };
-        
+
         // ... (lines 53-61 unchanged in replacement) ...
         let class_name = match class {
             AdventurerClass::Soldier => "soldier",
@@ -60,9 +60,12 @@ impl Adventurer {
             AdventurerClass::Healer => "healer",
             AdventurerClass::Mystic => "mystic",
         };
-        
-        let image_path = Some(format!("assets/images/characters/{}_{}.png", class_name, gender_suffix));
-        
+
+        let image_path = Some(format!(
+            "assets/images/characters/{}_{}.png",
+            class_name, gender_suffix
+        ));
+
         Self {
             id: uuid_simple(),
             name: name.to_string(),
@@ -84,24 +87,24 @@ impl Adventurer {
             image_path,
         }
     }
-    
+
     /// Check if adventurer is too stressed to deploy
     #[allow(dead_code)]
     pub fn is_stressed(&self) -> bool {
         self.stress >= 50
     }
-    
+
     /// Check if adventurer is injured
     #[allow(dead_code)]
     pub fn is_injured(&self) -> bool {
         !self.injuries.is_empty()
     }
-    
+
     /// Apply stress, potentially triggering trauma
     #[allow(dead_code)]
     pub fn add_stress(&mut self, amount: i32) -> Option<Trauma> {
         self.stress += amount;
-        
+
         // Trauma check at thresholds
         if self.stress >= 100 && !self.has_trauma(TraumaType::Broken) {
             let trauma = Trauma::new(TraumaType::Broken);
@@ -116,19 +119,19 @@ impl Adventurer {
             self.traumas.push(trauma.clone());
             return Some(trauma);
         }
-        
+
         None
     }
-    
+
     fn has_trauma(&self, trauma_type: TraumaType) -> bool {
         self.traumas.iter().any(|t| t.trauma_type == trauma_type)
     }
-    
+
     /// Reduce stress (at base, costs resources)
     pub fn reduce_stress(&mut self, amount: i32) {
         self.stress = (self.stress - amount).max(0);
     }
-    
+
     /// Heal HP (at infirmary)
     pub fn heal(&mut self, amount: i32) {
         self.hp = (self.hp + amount).min(self.max_hp);
@@ -144,10 +147,10 @@ fn uuid_simple() -> String {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum AdventurerClass {
-    Soldier,  // High HP, attack cards
-    Scout,    // Low HP, utility/evasion
-    Healer,   // Low HP, stress/healing
-    Mystic,   // Medium HP, special effects
+    Soldier, // High HP, attack cards
+    Scout,   // Low HP, utility/evasion
+    Healer,  // Low HP, stress/healing
+    Mystic,  // Medium HP, special effects
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -171,7 +174,7 @@ pub struct Injury {
     pub id: String,
     pub name: String,
     pub description: String,
-    pub severity: i32,  // 1-3
+    pub severity: i32, // 1-3
     pub healing_days: i32,
 }
 
@@ -186,7 +189,7 @@ impl Injury {
             healing_days: 3,
         }
     }
-    
+
     #[allow(dead_code)]
     pub fn broken_arm() -> Self {
         Self {
@@ -218,10 +221,10 @@ impl Trauma {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TraumaType {
-    Fearful,   // Chance to skip turn
-    Paranoid,  // Block cards cost +1
-    Broken,    // All cards cost +1
-    Hopeless,  // Cannot reduce stress in combat
+    Fearful,  // Chance to skip turn
+    Paranoid, // Block cards cost +1
+    Broken,   // All cards cost +1
+    Hopeless, // Cannot reduce stress in combat
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -239,12 +242,13 @@ pub enum StatusType {
 impl StatusType {
     /// Check if this status type is a debuff (negative effect)
     pub fn is_debuff(&self) -> bool {
-        matches!(self, 
-            StatusType::Vulnerable | 
-            StatusType::Weak | 
-            StatusType::Stun | 
-            StatusType::Poison | 
-            StatusType::Burn
+        matches!(
+            self,
+            StatusType::Vulnerable
+                | StatusType::Weak
+                | StatusType::Stun
+                | StatusType::Poison
+                | StatusType::Burn
         )
     }
 }
@@ -258,9 +262,13 @@ pub struct StatusEffect {
 
 impl StatusEffect {
     pub fn new(effect_type: StatusType, duration: i32, value: i32) -> Self {
-        Self { effect_type, duration, value }
+        Self {
+            effect_type,
+            duration,
+            value,
+        }
     }
-    
+
     /// Check if this status effect is a debuff
     pub fn is_debuff(&self) -> bool {
         self.effect_type.is_debuff()

@@ -32,7 +32,7 @@ pub enum EventOutcome {
     /// Gain knowledge about region
     Knowledge(i32),
     /// Trigger a combat encounter
-    Combat(String),  // Enemy ID
+    Combat(String), // Enemy ID
     /// Reveal a hidden region trait
     RevealTrait,
     /// Skip the next node
@@ -64,7 +64,7 @@ impl Event {
             ],
         }
     }
-    
+
     /// Discovery event - Ancient Marker
     pub fn ancient_marker() -> Self {
         Self {
@@ -83,7 +83,7 @@ impl Event {
             ],
         }
     }
-    
+
     /// Rest event
     pub fn forest_shrine() -> Self {
         Self {
@@ -108,9 +108,9 @@ impl Event {
 pub fn random_event(node: usize, _region_id: &str) -> Option<Event> {
     match node {
         0 => Some(Event::twisted_path()),
-        1 => None,  // Combat node
+        1 => None, // Combat node
         2 => Some(Event::ancient_marker()),
-        3 => None,  // Combat node
+        3 => None, // Combat node
         4 => Some(Event::forest_shrine()),
         _ => None,
     }

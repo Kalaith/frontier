@@ -55,21 +55,21 @@ pub struct Mission {
     pub description: String,
     pub mission_type: MissionType,
     pub region_id: String,
-    
+
     /// Number of nodes in the expedition
     pub length: usize,
-    
+
     /// Base difficulty (affects encounter strength)
     pub difficulty: i32,
-    
+
     /// Expected rewards
     pub reward_supplies: i32,
     pub reward_knowledge: i32,
     pub reward_influence: i32,
-    
+
     /// Stress this mission is likely to cause
     pub base_stress: i32,
-    
+
     /// Requirement to unlock this mission
     #[serde(default)]
     pub unlock_requirement: UnlockRequirement,
@@ -93,7 +93,7 @@ impl Mission {
             unlock_requirement: UnlockRequirement::None,
         }
     }
-    
+
     /// Combat-focused mission
     pub fn suppress_beasts() -> Self {
         Self {
@@ -111,14 +111,12 @@ impl Mission {
             unlock_requirement: UnlockRequirement::None,
         }
     }
-    
+
     /// Generate node types for this mission based on mission type
     /// Returns a Vec of NodeTypes, one for each node in the mission
     /// Note: Kept for potential fallback; replaced by generate_branching_map
     #[allow(dead_code)]
     pub fn generate_node_types(&self) -> Vec<NodeType> {
-
-        
         // Combat probability based on mission type
         let combat_chance = match self.mission_type {
             MissionType::Scout => 0.25,       // 25% combat
@@ -126,16 +124,16 @@ impl Mission {
             MissionType::Secure => 0.40,      // 40% combat
             MissionType::Investigate => 0.20, // 20% combat
         };
-        
+
         let mut nodes = Vec::with_capacity(self.length);
-        
+
         for i in 0..self.length {
             // First node is always an event (arrival)
             if i == 0 {
                 nodes.push(NodeType::Event);
                 continue;
             }
-            
+
             // Last node: Boss for Suppress, Event for others
             if i == self.length - 1 {
                 let final_node = match self.mission_type {
@@ -145,7 +143,7 @@ impl Mission {
                 nodes.push(final_node);
                 continue;
             }
-            
+
             // Middle nodes: random based on combat chance
             // Add rest points occasionally (every 3rd-4th node if not combat)
             let roll: f32 = macroquad_toolkit::rng::rand();
@@ -163,10 +161,10 @@ impl Mission {
                 nodes.push(NodeType::Event);
             }
         }
-        
+
         nodes
     }
-    
+
     /// Get effective difficulty for combat (Suppress = harder, Scout = easier)
     pub fn combat_difficulty(&self) -> i32 {
         match self.mission_type {
@@ -175,16 +173,14 @@ impl Mission {
             _ => self.difficulty,
         }
     }
-    
+
     /// Generate a branching map for this mission
     /// Returns a Vec of MapNodes forming a layered graph
     pub fn generate_branching_map(&self) -> Vec<MapNode> {
-
-        
         let num_layers = self.length;
         let mut nodes: Vec<MapNode> = Vec::new();
         let mut node_id = 0;
-        
+
         // Combat probability based on mission type
         let combat_chance = match self.mission_type {
             MissionType::Scout => 0.25,
@@ -192,10 +188,10 @@ impl Mission {
             MissionType::Secure => 0.40,
             MissionType::Investigate => 0.20,
         };
-        
+
         // Track node indices at each layer for connecting
         let mut layer_nodes: Vec<Vec<usize>> = Vec::new();
-        
+
         for layer in 0..num_layers {
             // Determine how many nodes in this layer
             // First and last layers have 1 node, middle layers have 1-3
@@ -206,13 +202,13 @@ impl Mission {
                 let max_branches = if self.length >= 6 { 3 } else { 2 };
                 macroquad_toolkit::rng::gen_range(1, max_branches + 1)
             };
-            
+
             let mut layer_node_indices = Vec::new();
-            
+
             for pos in 0..nodes_in_layer {
                 // Determine node type
                 let node_type = if layer == 0 {
-                    NodeType::Event  // Start is always event
+                    NodeType::Event // Start is always event
                 } else if layer == num_layers - 1 {
                     match self.mission_type {
                         MissionType::Suppress => NodeType::Boss,
@@ -229,28 +225,28 @@ impl Mission {
                         NodeType::Event
                     }
                 };
-                
+
                 let node = MapNode {
                     id: node_id,
                     node_type,
-                    connections: Vec::new(),  // Will be filled in next pass
+                    connections: Vec::new(), // Will be filled in next pass
                     layer,
                     position: pos,
                 };
-                
+
                 layer_node_indices.push(node_id);
                 nodes.push(node);
                 node_id += 1;
             }
-            
+
             layer_nodes.push(layer_node_indices);
         }
-        
+
         // Connect layers - each node connects to 1-2 nodes in next layer
         for layer in 0..num_layers.saturating_sub(1) {
             let current_layer = &layer_nodes[layer];
             let next_layer = &layer_nodes[layer + 1];
-            
+
             for &node_idx in current_layer {
                 // Connect to at least one node in next layer
                 let num_connections = if next_layer.len() == 1 {
@@ -258,29 +254,33 @@ impl Mission {
                 } else {
                     macroquad_toolkit::rng::gen_range(1, 2.min(next_layer.len()) + 1)
                 };
-                
+
                 // Pick which nodes to connect to
                 let mut available: Vec<usize> = next_layer.clone();
                 for _ in 0..num_connections {
-                    if available.is_empty() { break; }
+                    if available.is_empty() {
+                        break;
+                    }
                     let pick = macroquad_toolkit::rng::gen_range(0, available.len());
                     nodes[node_idx].connections.push(available[pick]);
                     available.remove(pick);
                 }
             }
-            
+
             // Ensure all nodes in next layer are reachable
             for &next_node in next_layer {
-                let has_incoming = current_layer.iter()
+                let has_incoming = current_layer
+                    .iter()
                     .any(|&n| nodes[n].connections.contains(&next_node));
                 if !has_incoming && !current_layer.is_empty() {
                     // Add connection from random node in current layer
-                    let from = current_layer[macroquad_toolkit::rng::gen_range(0, current_layer.len())];
+                    let from =
+                        current_layer[macroquad_toolkit::rng::gen_range(0, current_layer.len())];
                     nodes[from].connections.push(next_node);
                 }
             }
         }
-        
+
         nodes
     }
 }
@@ -299,9 +299,5 @@ pub fn load_missions() -> Vec<Mission> {
 
 /// Available missions for the player to choose from (hardcoded fallback)
 pub fn available_missions() -> Vec<Mission> {
-    vec![
-        Mission::first_mission(),
-        Mission::suppress_beasts(),
-    ]
+    vec![Mission::first_mission(), Mission::suppress_beasts()]
 }
-

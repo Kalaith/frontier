@@ -1,7 +1,7 @@
 //! Card definitions and starter deck
 
-use serde::{Deserialize, Serialize};
 use super::CardEffect;
+use serde::{Deserialize, Serialize};
 
 /// Card class restriction - which adventurer classes can use this card
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -44,58 +44,58 @@ pub struct Card {
 impl Card {
     /// Check if this card is an attack (deals damage)
     pub fn is_attack(&self) -> bool {
-        self.effects.iter().any(|e| matches!(e, 
-            CardEffect::Damage(_) | 
-            CardEffect::DamageIfNoBlock { .. } | 
-            CardEffect::DamageIfLowHp { .. } |
-            CardEffect::DamageIfEnemyActed { .. } |
-            CardEffect::DamageIfVulnerable { .. }
-        ))
+        self.effects.iter().any(|e| {
+            matches!(
+                e,
+                CardEffect::Damage(_)
+                    | CardEffect::DamageIfNoBlock { .. }
+                    | CardEffect::DamageIfLowHp { .. }
+                    | CardEffect::DamageIfEnemyActed { .. }
+                    | CardEffect::DamageIfVulnerable { .. }
+            )
+        })
     }
-    
+
     /// Check if this card can be used by the given class
     #[allow(dead_code)]
     pub fn usable_by(&self, class_name: &str) -> bool {
         self.class.matches(class_name)
     }
-    
+
     /// Load cards for a specific class (includes "Any" class cards)
     pub fn load_for_class(class_name: &str) -> Vec<Card> {
         match crate::data::cards::CardData::load_all() {
-            Ok(all_cards) => {
-                all_cards.iter()
-                    .filter(|c| c.class_matches(class_name))
-                    .map(|c| c.to_card())
-                    .collect()
-            }
+            Ok(all_cards) => all_cards
+                .iter()
+                .filter(|c| c.class_matches(class_name))
+                .map(|c| c.to_card())
+                .collect(),
             Err(e) => {
                 eprintln!("Failed to load cards from JSON: {}. Using fallback.", e);
                 Self::fallback_starter_hand()
             }
         }
     }
-    
+
     /// Load starter hand for a class
     pub fn starter_hand_for_class(class_name: &str) -> Vec<Card> {
         let cards = Self::load_for_class(class_name);
         cards.into_iter().take(5).collect()
     }
-    
+
     /// Load the starter hand from JSON data (legacy - uses Any cards)
     pub fn starter_hand() -> Vec<Card> {
-        Self::load_starter_deck()
-            .into_iter()
-            .take(5)
-            .collect()
+        Self::load_starter_deck().into_iter().take(5).collect()
     }
-    
+
     /// Load full starter deck from JSON (legacy)
     #[allow(dead_code)]
     pub fn load_starter_deck() -> Vec<Card> {
         match crate::data::cards::CardData::load_all() {
             Ok(all_cards) => {
                 // Just get basic cards for legacy support
-                all_cards.iter()
+                all_cards
+                    .iter()
                     .filter(|c| c.class_matches("Any"))
                     .map(|c| c.to_card())
                     .collect()
@@ -106,7 +106,7 @@ impl Card {
             }
         }
     }
-    
+
     /// Fallback hand if JSON loading fails
     fn fallback_starter_hand() -> Vec<Card> {
         vec![
@@ -131,4 +131,3 @@ impl Card {
         ]
     }
 }
-

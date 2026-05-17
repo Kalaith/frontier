@@ -11,22 +11,22 @@ pub struct Region {
     pub id: String,
     pub name: String,
     pub description: String,
-    
+
     /// Current threat level (0-100)
     pub threat_level: i32,
-    
+
     /// How much is known about this region (0-100)
     pub knowledge: i32,
-    
+
     /// Is this region accessible?
     pub unlocked: bool,
-    
+
     /// Has the first expedition been completed?
     pub discovered: bool,
-    
+
     /// The defining horror or faction
     pub faction: String,
-    
+
     /// Unknown traits revealed through exploration
     pub traits_revealed: Vec<String>,
     pub traits_hidden: Vec<String>,
@@ -39,7 +39,8 @@ impl Region {
         Self {
             id: "dark_woods".to_string(),
             name: "The Dark Woods".to_string(),
-            description: "Dense forest with twisted paths. Something moves between the trees.".to_string(),
+            description: "Dense forest with twisted paths. Something moves between the trees."
+                .to_string(),
             threat_level: 30,
             knowledge: 10,
             unlocked: true,
@@ -53,7 +54,7 @@ impl Region {
             ],
         }
     }
-    
+
     /// Reveal a hidden trait
     pub fn reveal_trait(&mut self) -> Option<String> {
         if !self.traits_hidden.is_empty() {
@@ -65,15 +66,14 @@ impl Region {
             None
         }
     }
-    
+
     /// Stabilizing reduces threat but may have consequences
     pub fn stabilize(&mut self, amount: i32) {
         self.threat_level = (self.threat_level - amount).max(0);
     }
-    
+
     /// When left alone, threat slowly rebuilds
     pub fn destabilize(&mut self, amount: i32) {
         self.threat_level = (self.threat_level + amount).min(100);
     }
 }
-

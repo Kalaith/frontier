@@ -36,7 +36,7 @@ impl Building {
             cost_supplies: 20,
         }
     }
-    
+
     pub fn chapel() -> Self {
         Self {
             id: "chapel".to_string(),
@@ -48,7 +48,7 @@ impl Building {
             cost_supplies: 10,
         }
     }
-    
+
     pub fn foundry() -> Self {
         Self {
             id: "foundry".to_string(),
@@ -60,7 +60,7 @@ impl Building {
             cost_supplies: 50,
         }
     }
-    
+
     pub fn guild_hall() -> Self {
         Self {
             id: "guild_hall".to_string(),
@@ -72,7 +72,7 @@ impl Building {
             cost_supplies: 50,
         }
     }
-    
+
     pub fn watchtowers() -> Self {
         Self {
             id: "watchtowers".to_string(),

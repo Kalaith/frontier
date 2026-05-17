@@ -3,7 +3,8 @@
 use macroquad::prelude::*;
 
 // Import toolkit utilities
-pub use macroquad_toolkit::input::{is_mouse_over, was_clicked, was_pressed};
+use macroquad_toolkit::input::{is_hovered_rect, was_clicked_rect, was_pressed_rect};
+pub use macroquad_toolkit::input::{is_mouse_over, was_clicked};
 
 /// Draw a button and return true if clicked
 ///
@@ -45,15 +46,19 @@ impl ClickableRect {
         Self { x, y, w, h }
     }
 
+    pub fn rect(&self) -> Rect {
+        Rect::new(self.x, self.y, self.w, self.h)
+    }
+
     pub fn is_hovered(&self) -> bool {
-        is_mouse_over(self.x, self.y, self.w, self.h)
+        is_hovered_rect(self.rect())
     }
 
     pub fn was_clicked(&self) -> bool {
-        was_clicked(self.x, self.y, self.w, self.h)
+        was_clicked_rect(self.rect())
     }
 
     pub fn was_pressed(&self) -> bool {
-        was_pressed(self.x, self.y, self.w, self.h)
+        was_pressed_rect(self.rect())
     }
 }

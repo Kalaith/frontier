@@ -1,12 +1,12 @@
 //! Global game loop and state switching
-//! 
+//!
 //! Only one GameState is active at a time. Transitions are explicit.
 
+use crate::kingdom::{KingdomState, Roster};
+use crate::save::{ensure_save_directory, SaveData};
+use crate::state::*;
 use macroquad::prelude::*;
 use std::collections::HashMap;
-use crate::state::*;
-use crate::kingdom::{KingdomState, Roster};
-use crate::save::{SaveData, ensure_save_directory};
 
 /// Top-level game state enum - explicit state machine
 pub enum GameState {
@@ -58,20 +58,20 @@ impl Game {
         } else {
             (KingdomState::default(), Roster::starter())
         };
-        
+
         // Load textures
         let mut textures = HashMap::new();
-        
+
         // Helper to load texture if file exists
         async fn load_tex(path: &str) -> Option<Texture2D> {
             load_texture(path).await.ok()
         }
-        
+
         // Helper to parse textures from JSON string
         async fn parse_textures_from_json(
-            json_str: &str, 
+            json_str: &str,
             field_name: &str,
-            textures: &mut HashMap<String, Texture2D>
+            textures: &mut HashMap<String, Texture2D>,
         ) {
             if let Ok(items) = serde_json::from_str::<Vec<serde_json::Value>>(json_str) {
                 for item in items {
@@ -88,7 +88,7 @@ impl Game {
             ($path:literal, $field:expr, $textures:expr) => {{
                 #[cfg(target_arch = "wasm32")]
                 let content = include_str!(concat!("../", $path));
-                
+
                 #[cfg(not(target_arch = "wasm32"))]
                 let content = match std::fs::read_to_string($path) {
                     Ok(c) => c,
@@ -98,17 +98,21 @@ impl Game {
                 parse_textures_from_json(&content, $field, $textures).await;
             }};
         }
-        
+
         // Load all textures from JSON data files
         load_textures!("assets/cards.json", "image_path", &mut textures);
         load_textures!("assets/enemies.json", "image_path", &mut textures);
-        
+
         // Character images (adventurers are generated, not from JSON)
         let char_images = [
-            "soldier_male", "soldier_female", 
-            "scout_male", "scout_female", 
-            "healer_male", "healer_female", 
-            "mystic_male", "mystic_female"
+            "soldier_male",
+            "soldier_female",
+            "scout_male",
+            "scout_female",
+            "healer_male",
+            "healer_female",
+            "mystic_male",
+            "mystic_female",
         ];
         for name in char_images {
             let path = format!("assets/images/characters/{}.png", name);
@@ -116,7 +120,7 @@ impl Game {
                 textures.insert(path, tex);
             }
         }
-        
+
         // Region images
         let region_images = ["dark_woods", "ruined_outpost", "sunken_valley"];
         for name in region_images {
@@ -134,7 +138,7 @@ impl Game {
             textures,
         }
     }
-    
+
     /// Update game logic based on current state
     pub fn update(&mut self) {
         // Update message timer
@@ -144,7 +148,7 @@ impl Game {
                 self.message = None;
             }
         }
-        
+
         // Handle save/load only in base state
         if matches!(self.state, GameState::Base(_)) {
             if is_key_pressed(KeyCode::F5) {
@@ -154,7 +158,7 @@ impl Game {
                 self.load_game();
             }
         }
-        
+
         match &mut self.state {
             GameState::Base(state) => {
                 if let Some(transition) = state.update(&mut self.kingdom, &mut self.roster) {
@@ -193,7 +197,7 @@ impl Game {
             }
         }
     }
-    
+
     /// Draw current state
     pub fn draw(&self) {
         match &self.state {
@@ -205,7 +209,7 @@ impl Game {
             GameState::Event(state) => state.draw(&self.textures),
             GameState::Recruit(state) => state.draw(&self.kingdom, &self.textures),
         }
-        
+
         // Draw message if any
         if let Some((msg, _)) = &self.message {
             let x = screen_width() / 2.0 - 100.0;
@@ -213,7 +217,7 @@ impl Game {
             draw_text(msg, x, 35.0, 24.0, YELLOW);
         }
     }
-    
+
     /// Handle explicit state transitions
     fn transition(&mut self, transition: StateTransition) {
         self.state = match transition {
@@ -226,13 +230,13 @@ impl Game {
             StateTransition::ToRecruit => GameState::Recruit(RecruitState::new()),
         };
     }
-    
+
     fn save_game(&mut self) {
         if let Err(e) = ensure_save_directory() {
             self.message = Some((format!("Save failed: {}", e), 3.0));
             return;
         }
-        
+
         let save = SaveData::new(self.kingdom.clone(), self.roster.clone());
         match save.save(&SaveData::default_path()) {
             Ok(()) => {
@@ -243,7 +247,7 @@ impl Game {
             }
         }
     }
-    
+
     fn load_game(&mut self) {
         match SaveData::load(&SaveData::default_path()) {
             Ok(save) => {

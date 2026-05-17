@@ -1,8 +1,8 @@
 //! Mission and expedition modules
 
+pub mod events;
 pub mod mission;
 pub mod region;
-pub mod events;
 
-pub use mission::{Mission, MissionType, NodeType, MapNode, load_missions};
+pub use mission::{load_missions, MapNode, Mission, MissionType, NodeType};
 // Region and events are used internally via full paths

@@ -2,10 +2,9 @@
 //!
 //! Human-readable JSON saves with version tracking.
 
-
+use macroquad_toolkit::persistence::{file_exists, get_app_data_path, load_json, save_json};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use macroquad_toolkit::persistence::{save_json, load_json, get_app_data_path, file_exists};
 
 use crate::kingdom::{KingdomState, Roster};
 
@@ -28,7 +27,6 @@ pub struct SaveData {
 
 // Enable toolkit persistence methods
 
-
 impl SaveData {
     /// Create a new save from current game state
     pub fn new(kingdom: KingdomState, roster: Roster) -> Self {
@@ -43,7 +41,7 @@ impl SaveData {
             total_deaths: 0,
         }
     }
-    
+
     fn get_save_path() -> PathBuf {
         // Try to use app data path, fallback to local file "saves/save.json" for legacy reasons or "frontier_kingdom_save.json"
         get_app_data_path("frontier_kingdom", SAVE_FILE_NAME)
@@ -52,16 +50,16 @@ impl SaveData {
 
     /// Save to a file
     pub fn save(&self, _path: &str) -> Result<(), String> {
-        // We ignore the passed path argument to enforce standard location, 
+        // We ignore the passed path argument to enforce standard location,
         // or we could use it if we really wanted to support custom paths.
         // For now, let's stick to the standard app data path for better cross-platform support.
         save_json(Self::get_save_path(), self)
     }
-    
+
     /// Load from a file
     pub fn load(_path: &str) -> Result<Self, String> {
         let save: SaveData = load_json(Self::get_save_path())?;
-        
+
         // Version check
         if save.version > SAVE_VERSION {
             return Err(format!(
@@ -69,15 +67,15 @@ impl SaveData {
                 save.version, SAVE_VERSION
             ));
         }
-        
+
         Ok(save)
     }
-    
+
     /// Check if a save exists
     pub fn exists(_path: &str) -> bool {
         file_exists(Self::get_save_path())
     }
-    
+
     /// Default save path (kept for compatibility with callers, though we use `get_app_data_path` internally now)
     pub fn default_path() -> String {
         "legacy_path_ignored".to_string()
