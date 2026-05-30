@@ -166,7 +166,7 @@ impl CombatState {
 
             // Mouse click on card
             let (card_x, card_y, card_width, card_height) = combat_card_rect(i, self.hand.len());
-            if was_pressed(card_x, card_y, card_width, card_height) {
+            if clicked_down(card_x, card_y, card_width, card_height) {
                 if self.selected_card == Some(i) {
                     // Clicking already selected card = play it
                     self.try_play_selected_card();
@@ -188,7 +188,7 @@ impl CombatState {
         // End Turn button bounds
         let end_btn_x = screen_width() - 168.0;
         let end_btn_y = screen_height() - 58.0;
-        if was_pressed(end_btn_x, end_btn_y, 144.0, 38.0) {
+        if clicked_down(end_btn_x, end_btn_y, 144.0, 38.0) {
             self.end_turn();
         }
 
@@ -801,6 +801,20 @@ fn draw_report_panel(state: &CombatState, preview_idx: Option<usize>) {
     }
 }
 
+fn draw_feedback_panel(feedback: Option<&(String, f32)>) {
+    let Some((message, time_left)) = feedback else {
+        return;
+    };
+
+    let alpha = ((*time_left / 2.0).clamp(0.0, 1.0) * 210.0) as u8;
+    let width = measure_text(message, None, 18, 1.0).width + 42.0;
+    let x = (screen_width() - width) / 2.0;
+    let y = 432.0;
+    draw_rectangle(x, y, width, 42.0, Color::from_rgba(28, 21, 14, alpha));
+    draw_rectangle_lines(x, y, width, 42.0, 1.0, candle_color());
+    draw_text(message, x + 20.0, y + 27.0, 18.0, text_color());
+}
+
 fn draw_combat_card(
     i: usize,
     card: &Card,
@@ -913,10 +927,23 @@ fn draw_combat_card(
 }
 
 fn draw_action_button(label: &str, x: f32, y: f32, w: f32, h: f32) {
-    draw_rectangle(x, y, w, h, Color::from_rgba(70, 49, 27, 238));
+    let hovered = crate::ui::is_mouse_over(x, y, w, h);
+    let pressed = clicked_down(x, y, w, h);
+    let fill = if pressed {
+        Color::from_rgba(130, 92, 39, 255)
+    } else if hovered {
+        Color::from_rgba(95, 67, 31, 245)
+    } else {
+        Color::from_rgba(70, 49, 27, 238)
+    };
+    draw_rectangle(x, y, w, h, fill);
     draw_rectangle_lines(x, y, w, h, 1.0, candle_color());
     let tw = measure_text(label, None, 16, 1.0).width;
     draw_text(label, x + (w - tw) / 2.0, y + 24.0, 16.0, text_color());
+}
+
+fn clicked_down(x: f32, y: f32, w: f32, h: f32) -> bool {
+    crate::ui::is_mouse_over(x, y, w, h) && is_mouse_button_pressed(MouseButton::Left)
 }
 
 fn panel(x: f32, y: f32, w: f32, h: f32, title: &str) {
