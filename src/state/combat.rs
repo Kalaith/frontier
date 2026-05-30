@@ -2,8 +2,8 @@
 
 use super::{MissionState, ResultState, StateTransition};
 use crate::combat::{Card, CombatResolver, Unit};
-use crate::data::random_enemy_for_difficulty;
-use crate::kingdom::PartyMemberState;
+use crate::data::random_enemy_for_region_and_difficulty;
+use crate::kingdom::{PartyMemberState, ResolveState, TraumaType};
 use crate::missions::{MapNode, Mission};
 use macroquad::prelude::*;
 
@@ -100,6 +100,8 @@ impl CombatState {
                 unit.hp = m.hp;
                 unit.stress = m.stress;
                 unit.image_path = m.image_path.clone();
+                unit.traumas = m.traumas.clone();
+                unit.resolve_state = m.resolve_state.clone();
                 unit
             })
             .collect();
@@ -112,10 +114,21 @@ impl CombatState {
             .first()
             .map(|m| m.class_name.as_str())
             .unwrap_or("Soldier");
-        let hand = Card::starter_hand_for_class(class_name);
+        let deck_additions = context
+            .party_members
+            .first()
+            .map(|m| m.deck_additions.as_slice())
+            .unwrap_or(&[]);
+        let hand = Card::load_deck_for_class(class_name, deck_additions)
+            .into_iter()
+            .take(5)
+            .collect();
 
-        // Get random enemy based on mission difficulty (scaled by mission type)
-        let enemy = random_enemy_for_difficulty(context.mission.combat_difficulty());
+        // Get random enemy based on mission region and difficulty.
+        let enemy = random_enemy_for_region_and_difficulty(
+            &context.mission.region_id,
+            context.mission.combat_difficulty(),
+        );
 
         Self {
             players,
@@ -200,6 +213,11 @@ impl CombatState {
                             class_name: orig
                                 .map(|m| m.class_name.clone())
                                 .unwrap_or_else(|| "Soldier".to_string()),
+                            deck_additions: orig
+                                .map(|m| m.deck_additions.clone())
+                                .unwrap_or_default(),
+                            traumas: p.traumas.clone(),
+                            resolve_state: p.resolve_state.clone(),
                         }
                     })
                     .collect();
@@ -224,7 +242,8 @@ impl CombatState {
         if all_dead {
             // Defeat - always go to results
             if let Some(ctx) = &self.return_mission {
-                let results = ResultState::defeat_for_party(&ctx.party_members);
+                let final_members = self.party_members_from_players(ctx);
+                let results = ResultState::defeat_for_mission(&ctx.mission, &final_members);
                 return Some(StateTransition::ToResults(results));
             } else {
                 let leader_id = self.players.first().map(|p| p.name.as_str()).unwrap_or("");
@@ -240,16 +259,22 @@ impl CombatState {
     fn try_play_selected_card(&mut self) {
         if let Some(card_idx) = self.selected_card {
             if card_idx < self.hand.len() && self.current_player_idx < self.players.len() {
-                let card = &self.hand[card_idx];
+                let card = self.hand[card_idx].clone();
 
                 // Check if card can be played
-                let can_afford = card.cost <= self.energy;
+                let effective_cost = self.effective_card_cost(&card);
+                let can_afford = effective_cost <= self.energy;
                 let attack_blocked = card.is_attack() && self.resolver.turn_mods.attacks_disabled;
 
                 if can_afford && !attack_blocked {
+                    if self.fearful_fumble(&card) {
+                        self.selected_card = None;
+                        return;
+                    }
+
                     // Resolve card effects
                     let effects = card.effects.clone();
-                    self.energy -= card.cost;
+                    self.energy -= effective_cost;
 
                     // Get active player reference
                     let player = &mut self.players[self.current_player_idx];
@@ -257,11 +282,123 @@ impl CombatState {
                         self.resolver.resolve(&effect, player, &mut self.enemy);
                     }
 
+                    self.apply_card_turn_modifiers();
                     self.hand.remove(card_idx);
                     self.selected_card = None;
                 }
             }
         }
+    }
+
+    fn effective_card_cost(&self, card: &Card) -> i32 {
+        let Some(player) = self.players.get(self.current_player_idx) else {
+            return card.cost;
+        };
+
+        let mut cost = card.cost;
+        if player
+            .traumas
+            .iter()
+            .any(|t| t.trauma_type == TraumaType::Broken)
+        {
+            cost += 1;
+        }
+        if card
+            .effects
+            .iter()
+            .any(|e| matches!(e, crate::combat::CardEffect::Block(_)))
+            && player
+                .traumas
+                .iter()
+                .any(|t| t.trauma_type == TraumaType::Paranoid)
+        {
+            cost += 1;
+        }
+        cost
+    }
+
+    fn fearful_fumble(&mut self, card: &Card) -> bool {
+        if !card.is_attack() {
+            return false;
+        }
+        let Some(player) = self.players.get_mut(self.current_player_idx) else {
+            return false;
+        };
+        if player
+            .traumas
+            .iter()
+            .any(|t| t.trauma_type == TraumaType::Fearful)
+            && macroquad_toolkit::rng::chance(0.15)
+        {
+            player.add_stress(3);
+            self.resolver
+                .log
+                .push(format!("{} hesitates and loses the attack", player.name));
+            true
+        } else {
+            false
+        }
+    }
+
+    fn apply_card_turn_modifiers(&mut self) {
+        if self.resolver.turn_mods.energy_to_gain > 0 {
+            self.energy += self.resolver.turn_mods.energy_to_gain;
+            self.resolver.turn_mods.energy_to_gain = 0;
+        }
+
+        if self.resolver.turn_mods.cards_to_draw > 0 {
+            let count = self.resolver.turn_mods.cards_to_draw;
+            self.draw_extra_cards(count);
+            self.resolver.turn_mods.cards_to_draw = 0;
+        }
+    }
+
+    fn draw_extra_cards(&mut self, count: i32) {
+        let deck = self.deck_for_current_player();
+        let mut remaining = count;
+        for card in deck {
+            if self.hand.len() >= 7 || remaining <= 0 {
+                break;
+            }
+            if !self.hand.iter().any(|c| c.id == card.id) {
+                self.hand.push(card);
+                remaining -= 1;
+            }
+        }
+    }
+
+    fn deck_for_current_player(&self) -> Vec<Card> {
+        let (class_name, deck_additions) = self
+            .return_mission
+            .as_ref()
+            .and_then(|ctx| ctx.party_members.get(self.current_player_idx))
+            .map(|m| (m.class_name.as_str(), m.deck_additions.as_slice()))
+            .unwrap_or(("Soldier", &[]));
+        Card::load_deck_for_class(class_name, deck_additions)
+    }
+
+    fn party_members_from_players(&self, ctx: &MissionContext) -> Vec<PartyMemberState> {
+        self.players
+            .iter()
+            .enumerate()
+            .map(|(i, p)| {
+                let orig = ctx.party_members.get(i);
+                PartyMemberState {
+                    id: orig.map(|m| m.id.clone()).unwrap_or_default(),
+                    name: p.name.clone(),
+                    hp: p.hp,
+                    max_hp: p.max_hp,
+                    stress: p.stress,
+                    image_path: p.image_path.clone(),
+                    class_name: orig
+                        .map(|m| m.class_name.clone())
+                        .unwrap_or_else(|| "Soldier".to_string()),
+                    deck_additions: orig.map(|m| m.deck_additions.clone()).unwrap_or_default(),
+                    traumas: p.traumas.clone(),
+                    resolve_state: p.resolve_state.clone(),
+                }
+            })
+            .collect()
     }
 
     fn end_turn(&mut self) {
@@ -317,16 +454,10 @@ impl CombatState {
 
         // Next Turn
         self.turn += 1;
-        self.energy = self.max_energy;
+        self.energy = self.max_energy + self.resolver.turn_mods.start_turn();
 
         // Draw class-appropriate cards for current player
-        let class_name = self
-            .return_mission
-            .as_ref()
-            .and_then(|ctx| ctx.party_members.get(self.current_player_idx))
-            .map(|m| m.class_name.as_str())
-            .unwrap_or("Soldier");
-        self.hand = Card::starter_hand_for_class(class_name);
+        self.hand = self.deck_for_current_player().into_iter().take(5).collect();
 
         // Roll new enemy intent for next turn
         self.enemy.roll_intent(self.turn);
@@ -462,6 +593,14 @@ impl CombatState {
                 ORANGE,
             );
 
+            if let Some(resolve) = &player.resolve_state {
+                let (label, color) = match resolve {
+                    ResolveState::Virtuous => ("Virtuous", GREEN),
+                    ResolveState::Afflicted => ("Afflicted", RED),
+                };
+                draw_text(label, 130.0, player_y + 65.0, 18.0, color);
+            }
+
             // Draw Player Statuses
             let mut sx = 20.0;
             let sy = player_y + 85.0;
@@ -558,12 +697,17 @@ impl CombatState {
         let card_y = screen_height() - 250.0;
         let card_width = 140.0;
         let card_height = 160.0;
+        let mut hovered_card_idx: Option<usize> = None;
 
         for (i, card) in self.hand.iter().enumerate() {
             let x = 20.0 + (i as f32 * (card_width + 10.0));
             let is_selected = self.selected_card == Some(i);
             let is_hovered = crate::ui::is_mouse_over(x, card_y, card_width, card_height);
-            let can_afford = card.cost <= self.energy;
+            if is_hovered {
+                hovered_card_idx = Some(i);
+            }
+            let effective_cost = self.effective_card_cost(card);
+            let can_afford = effective_cost <= self.energy;
             let attack_blocked = card.is_attack() && self.resolver.turn_mods.attacks_disabled;
             let can_play = can_afford && !attack_blocked;
 
@@ -643,9 +787,9 @@ impl CombatState {
 
             // Cost and status
             let status_text = if attack_blocked {
-                "BLOCKED"
+                "BLOCKED".to_string()
             } else {
-                &format!("Cost: {}", card.cost)
+                format!("Cost: {}", effective_cost)
             };
             let status_color = if attack_blocked {
                 PURPLE
@@ -654,7 +798,7 @@ impl CombatState {
             } else {
                 RED
             };
-            draw_text(status_text, x + 5.0, info_y + 32.0, 12.0, status_color);
+            draw_text(&status_text, x + 5.0, info_y + 32.0, 12.0, status_color);
         }
 
         // End Turn button
@@ -670,5 +814,17 @@ impl CombatState {
             16.0,
             GREEN,
         );
+
+        crate::ui::keyword_tooltip("Block", 20.0, player_y + 28.0, 90.0, 22.0);
+        crate::ui::keyword_tooltip("Stress", 20.0, player_y + 48.0, 110.0, 22.0);
+        crate::ui::keyword_tooltip("Energy", 20.0, player_y + 90.0, 130.0, 24.0);
+        crate::ui::keyword_tooltip("Block", enemy_x, player_y + 28.0, 90.0, 22.0);
+        crate::ui::keyword_tooltip("Resolve", 130.0, player_y + 48.0, 95.0, 22.0);
+
+        if let Some(idx) = hovered_card_idx {
+            if let Some(card) = self.hand.get(idx) {
+                crate::ui::card_tooltip(&card.name, &card.description);
+            }
+        }
     }
 }

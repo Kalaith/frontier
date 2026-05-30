@@ -39,6 +39,8 @@ pub struct Card {
     pub image_path: Option<String>,
     #[serde(default)]
     pub class: CardClass,
+    #[serde(default)]
+    pub required_knowledge: i32,
 }
 
 impl Card {
@@ -62,12 +64,12 @@ impl Card {
         self.class.matches(class_name)
     }
 
-    /// Load cards for a specific class (includes "Any" class cards)
+    /// Load base cards for a specific class (includes "Any" cards).
     pub fn load_for_class(class_name: &str) -> Vec<Card> {
         match crate::data::cards::CardData::load_all() {
             Ok(all_cards) => all_cards
                 .iter()
-                .filter(|c| c.class_matches(class_name))
+                .filter(|c| c.class_matches(class_name) && !c.is_unlockable())
                 .map(|c| c.to_card())
                 .collect(),
             Err(e) => {
@@ -77,7 +79,24 @@ impl Card {
         }
     }
 
+    /// Load a class deck with Knowledge-unlocked card additions.
+    pub fn load_deck_for_class(class_name: &str, deck_additions: &[String]) -> Vec<Card> {
+        let mut deck = Self::load_for_class(class_name);
+        if let Ok(all_cards) = crate::data::cards::CardData::load_all() {
+            for id in deck_additions {
+                if let Some(card) = all_cards
+                    .iter()
+                    .find(|c| c.id == *id && c.class_matches(class_name))
+                {
+                    deck.push(card.to_card());
+                }
+            }
+        }
+        deck
+    }
+
     /// Load starter hand for a class
+    #[allow(dead_code)]
     pub fn starter_hand_for_class(class_name: &str) -> Vec<Card> {
         let cards = Self::load_for_class(class_name);
         cards.into_iter().take(5).collect()
@@ -96,7 +115,7 @@ impl Card {
                 // Just get basic cards for legacy support
                 all_cards
                     .iter()
-                    .filter(|c| c.class_matches("Any"))
+                    .filter(|c| c.class_matches("Any") && !c.is_unlockable())
                     .map(|c| c.to_card())
                     .collect()
             }
@@ -118,6 +137,7 @@ impl Card {
                 effects: vec![CardEffect::Damage(6)],
                 image_path: Some("assets/images/cards/strike.png".to_string()),
                 class: CardClass::Any,
+                required_knowledge: 0,
             },
             Card {
                 id: "guard".to_string(),
@@ -127,6 +147,7 @@ impl Card {
                 effects: vec![CardEffect::Block(5)],
                 image_path: Some("assets/images/cards/guard.png".to_string()),
                 class: CardClass::Any,
+                required_knowledge: 0,
             },
         ]
     }

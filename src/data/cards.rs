@@ -15,6 +15,8 @@ pub struct CardData {
     pub image_path: Option<String>,
     #[serde(default)]
     pub class: CardClass,
+    #[serde(default)]
+    pub required_knowledge: i32,
 }
 
 impl CardData {
@@ -38,7 +40,13 @@ impl CardData {
             effects: self.effects.clone(),
             image_path: self.image_path.clone(),
             class: self.class.clone(),
+            required_knowledge: self.required_knowledge,
         }
+    }
+
+    /// Advanced cards are learned in the Foundry by spending Knowledge.
+    pub fn is_unlockable(&self) -> bool {
+        self.required_knowledge > 0
     }
 }
 
@@ -46,5 +54,9 @@ impl CardData {
 #[allow(dead_code)]
 pub fn load_starter_deck() -> Result<Vec<Card>, String> {
     let data = CardData::load_all()?;
-    Ok(data.iter().map(|c| c.to_card()).collect())
+    Ok(data
+        .iter()
+        .filter(|c| !c.is_unlockable())
+        .map(|c| c.to_card())
+        .collect())
 }

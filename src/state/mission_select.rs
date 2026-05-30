@@ -32,6 +32,9 @@ impl MissionSelectState {
             stress,
             image_path: image,
             class_name: "Soldier".to_string(),
+            deck_additions: vec![],
+            traumas: vec![],
+            resolve_state: None,
         };
         Self {
             missions: load_missions(),
@@ -105,8 +108,9 @@ impl MissionSelectState {
                 // Check if mission is unlocked
                 if self.is_mission_unlocked(mission, kingdom) {
                     if let Some(_leader) = self.leader() {
+                        let scaled_mission = mission.scaled_for_kingdom(kingdom);
                         let mission_state = MissionState::from_mission_with_party(
-                            mission.clone(),
+                            scaled_mission,
                             self.party_members.clone(),
                         );
                         return Some(StateTransition::ToMission(mission_state));
@@ -264,6 +268,8 @@ impl MissionSelectState {
                 type_color,
             );
 
+            let effective = mission.scaled_for_kingdom(kingdom);
+
             // Rewards (dimmed for locked)
             let reward_color = if is_unlocked {
                 YELLOW
@@ -272,8 +278,8 @@ impl MissionSelectState {
             };
             draw_text(
                 &format!(
-                    "Rewards: +{} Supplies, +{} Knowledge",
-                    mission.reward_supplies, mission.reward_knowledge
+                    "Rewards: +{} Gold, +{} Supplies, +{} Knowledge",
+                    mission.reward_gold, mission.reward_supplies, mission.reward_knowledge
                 ),
                 200.0,
                 y + 75.0,
@@ -290,7 +296,7 @@ impl MissionSelectState {
             draw_text(
                 &format!(
                     "Difficulty: {}  |  Stress: {}",
-                    mission.difficulty, mission.base_stress
+                    effective.difficulty, effective.base_stress
                 ),
                 450.0,
                 y + 25.0,

@@ -383,5 +383,159 @@
       }
     ],
     "image_path": "assets/images/cards/arcane_shield.png"
+  },
+  {
+    "id": "rallying_cry",
+    "name": "Rallying Cry",
+    "cost": 1,
+    "description": "Gain 6 Block. Reduce Stress by 4.",
+    "class": "Soldier",
+    "required_knowledge": 15,
+    "effects": [
+      {
+        "Block": 6
+      },
+      {
+        "ReduceStress": 4
+      }
+    ],
+    "image_path": "assets/images/cards/hold_the_line.png"
+  },
+  {
+    "id": "crushing_advance",
+    "name": "Crushing Advance",
+    "cost": 2,
+    "description": "Deal 9 damage. Apply Weak for 2 turns.",
+    "class": "Soldier",
+    "required_knowledge": 20,
+    "effects": [
+      {
+        "Damage": 9
+      },
+      {
+        "ApplyStatus": {
+          "effect_type": "Weak",
+          "duration": 2,
+          "value": 0,
+          "target_self": false
+        }
+      }
+    ],
+    "image_path": "assets/images/cards/heavy_strike.png"
+  },
+  {
+    "id": "smoke_step",
+    "name": "Smoke Step",
+    "cost": 1,
+    "description": "Gain 8 Block. Gain 50% Stress resistance this turn.",
+    "class": "Scout",
+    "required_knowledge": 15,
+    "effects": [
+      {
+        "Block": 8
+      },
+      {
+        "StressResistance": 50
+      }
+    ],
+    "image_path": "assets/images/cards/evasion.png"
+  },
+  {
+    "id": "expose_weakness",
+    "name": "Expose Weakness",
+    "cost": 1,
+    "description": "Apply Vulnerable for 3 turns. Draw 1 card.",
+    "class": "Scout",
+    "required_knowledge": 25,
+    "effects": [
+      {
+        "ApplyStatus": {
+          "effect_type": "Vulnerable",
+          "duration": 3,
+          "value": 0,
+          "target_self": false
+        }
+      },
+      {
+        "DrawCards": 1
+      }
+    ],
+    "image_path": "assets/images/cards/backstab.png"
+  },
+  {
+    "id": "sanctuary",
+    "name": "Sanctuary",
+    "cost": 2,
+    "description": "Heal 10 HP. Gain 8 Block.",
+    "class": "Healer",
+    "required_knowledge": 20,
+    "effects": [
+      {
+        "Heal": 10
+      },
+      {
+        "Block": 8
+      }
+    ],
+    "image_path": "assets/images/cards/holy_shield.png"
+  },
+  {
+    "id": "absolution",
+    "name": "Absolution",
+    "cost": 2,
+    "description": "Reduce Stress by 18. Clear all debuffs.",
+    "class": "Healer",
+    "required_knowledge": 30,
+    "effects": [
+      {
+        "ReduceStress": 18
+      },
+      "ClearDebuffs"
+    ],
+    "image_path": "assets/images/cards/purify.png"
+  },
+  {
+    "id": "lightning_lance",
+    "name": "Lightning Lance",
+    "cost": 2,
+    "description": "Deal 11 damage. Gain 1 Energy next turn.",
+    "class": "Mystic",
+    "required_knowledge": 20,
+    "effects": [
+      {
+        "Damage": 11
+      },
+      {
+        "GainEnergyNextTurn": 1
+      }
+    ],
+    "image_path": "assets/images/cards/arcane_bolt.png"
+  },
+  {
+    "id": "time_lock",
+    "name": "Time Lock",
+    "cost": 2,
+    "description": "Stun enemy for 1 turn. Apply Vulnerable for 2 turns.",
+    "class": "Mystic",
+    "required_knowledge": 35,
+    "effects": [
+      {
+        "ApplyStatus": {
+          "effect_type": "Stun",
+          "duration": 1,
+          "value": 0,
+          "target_self": false
+        }
+      },
+      {
+        "ApplyStatus": {
+          "effect_type": "Vulnerable",
+          "duration": 2,
+          "value": 0,
+          "target_self": false
+        }
+      }
+    ],
+    "image_path": "assets/images/cards/mind_blast.png"
   }
 ]

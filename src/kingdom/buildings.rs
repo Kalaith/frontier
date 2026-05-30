@@ -22,6 +22,7 @@ impl Building {
             Self::foundry(),
             Self::guild_hall(),
             Self::watchtowers(),
+            Self::citadel(),
         ]
     }
 
@@ -82,6 +83,19 @@ impl Building {
             level: 0,
             cost_gold: 80,
             cost_supplies: 40,
+        }
+    }
+
+    pub fn citadel() -> Self {
+        Self {
+            id: "citadel".to_string(),
+            name: "Permanent Citadel".to_string(),
+            description: "A lasting stronghold that secures the frontier and wins the campaign."
+                .to_string(),
+            built: false,
+            level: 0,
+            cost_gold: 250,
+            cost_supplies: 140,
         }
     }
 }

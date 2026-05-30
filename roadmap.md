@@ -33,8 +33,8 @@ This document outlines the path from current prototype to MVP (Minimum Viable Pr
 
 ### 1.4 Technical & UI
 - [x] Save/Load System (Basic).
-- [x] **Deck Viewer:** Allow viewing current deck outside of combat.he Base and during Missions.
-- [ ] **Tooltips:** Hover over keywords (Stress, Block) to see explanations.
+- [x] **Deck Viewer:** Allow viewing current deck outside of combat, in the Base, and during Missions.
+- [x] **Tooltips:** Hover over keywords (Stress, Block) to see explanations.
 
 ---
 
@@ -42,14 +42,14 @@ This document outlines the path from current prototype to MVP (Minimum Viable Pr
 **Goal:** Deepen the systems and add variety.
 
 ### 2.1 The Stress & Trauma System
-- [ ] **Stress Breakpoint:** When Stress hits 100, trigger a *Resolve Check* (Virtue vs Affliction).
-- [ ] **Trauma Traits:** Persistent negative traits gained from high stress missions.
-- [ ] **Heart Attacks:** Lethal consequences for max stress.
+- [x] **Stress Breakpoint:** When Stress hits 100, trigger a *Resolve Check* (Virtue vs Affliction).
+- [x] **Trauma Traits:** Persistent negative traits gained from high stress missions.
+- [x] **Heart Attacks:** Lethal consequences for max stress.
 
 ### 2.2 Content Expansion
-- [ ] **Enemy Variety:** 10+ Unique Enemies with distinct AI behaviors.
-- [ ] **Card Pool:** 30+ Cards (Unlockable via "Knowledge" resource).
-- [ ] **Biomes:** Add a second region (e.g., "The Ruins") with unique art and enemies.
+- [x] **Enemy Variety:** 10+ Unique Enemies with distinct AI behaviors.
+- [x] **Card Pool:** 30+ Cards (Unlockable via "Knowledge" resource).
+- [x] **Biomes:** Add a second region (e.g., "The Ruins") with unique art and enemies.
 
 ---
 
@@ -57,18 +57,18 @@ This document outlines the path from current prototype to MVP (Minimum Viable Pr
 **Goal:** Balance, bug fixing, and final polish.
 
 ### 3.1 Balance & Progression
-- [ ] **Economy Tuning:** Ensure resources are scarce but manageable.
-- [ ] **Combat Balance:** Tweaking enemy damage vs player mitigation.
-- [ ] **Progression Curve:** Ensure the game gets harder as the Kingdom grows (Threat Level system).
+- [x] **Economy Tuning:** Ensure resources are scarce but manageable.
+- [x] **Combat Balance:** Tweaking enemy damage vs player mitigation.
+- [x] **Progression Curve:** Ensure the game gets harder as the Kingdom grows (Threat Level system).
 
 ### 3.2 Narrative & Meta
-- [ ] **Quest Log:** Long-term goals (e.g., "Defeat the Necromancer").
-- [ ] **Kingdom Events:** Random events in the Base (Plague, Thieves, Traders).
-- [ ] **Ending:** A win condition (e.g., Establishing a permanent citadel).
+- [x] **Quest Log:** Long-term goals (e.g., "Defeat the Necromancer").
+- [x] **Kingdom Events:** Random events in the Base (Plague, Thieves, Traders).
+- [x] **Ending:** A win condition (e.g., Establishing a permanent citadel).
 
 ---
 
 ## Immediate Next Steps (To-Do List)
 1.  **Status Effects:** [x] Implement Buffs/Debuffs to deepen combat.
-2.  **Map Variety:** [ ] Branching paths for exploration.
+2.  **Map Variety:** [x] Branching paths for exploration.
 3.  **Deck Viewer:** [x] View card decks in Base/Mission.

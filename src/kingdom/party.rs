@@ -1,6 +1,6 @@
 //! Party management - groups of adventurers that go on missions together
 
-use super::adventurer::Adventurer;
+use super::adventurer::{Adventurer, ResolveState, Trauma};
 use serde::{Deserialize, Serialize};
 
 /// Maximum party size
@@ -88,6 +88,9 @@ pub struct PartyMemberState {
     pub stress: i32,
     pub image_path: Option<String>,
     pub class_name: String,
+    pub deck_additions: Vec<String>,
+    pub traumas: Vec<Trauma>,
+    pub resolve_state: Option<ResolveState>,
 }
 
 impl PartyMemberState {
@@ -101,6 +104,9 @@ impl PartyMemberState {
             stress: adv.stress,
             image_path: adv.image_path.clone(),
             class_name: format!("{:?}", adv.class),
+            deck_additions: adv.deck_additions.clone(),
+            traumas: adv.traumas.clone(),
+            resolve_state: adv.resolve_state.clone(),
         }
     }
 }

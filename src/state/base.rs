@@ -144,6 +144,11 @@ impl BaseState {
                                 }
                             }
                         }
+
+                        // U: Learn an advanced card with Knowledge (requires Foundry)
+                        if is_key_pressed(KeyCode::U) {
+                            self.try_unlock_card(kingdom, roster, adv_idx);
+                        }
                     }
                 }
             }
@@ -282,6 +287,45 @@ impl BaseState {
                 kingdom.stats.supplies -= building.cost_supplies;
                 building.built = true;
                 building.level = 1;
+                if building.id == "citadel" {
+                    kingdom.game_won = true;
+                }
+            }
+        }
+    }
+
+    fn try_unlock_card(&mut self, kingdom: &mut KingdomState, roster: &mut Roster, adv_idx: usize) {
+        if !kingdom.has_building("foundry") {
+            return;
+        }
+
+        let Some(adv) = roster.adventurers.get(adv_idx) else {
+            return;
+        };
+
+        let class_name = format!("{:?}", adv.class);
+        let known_cards = adv.deck_additions.clone();
+        let Ok(all_cards) = crate::data::cards::CardData::load_all() else {
+            return;
+        };
+
+        let mut candidates: Vec<_> = all_cards
+            .iter()
+            .filter(|card| {
+                card.class_matches(&class_name)
+                    && card.is_unlockable()
+                    && !known_cards.iter().any(|id| id == &card.id)
+            })
+            .collect();
+        candidates.sort_by_key(|card| card.required_knowledge);
+
+        if let Some(card) = candidates
+            .into_iter()
+            .find(|card| kingdom.stats.knowledge >= card.required_knowledge)
+        {
+            kingdom.stats.knowledge -= card.required_knowledge;
+            if let Some(adv) = roster.adventurers.get_mut(adv_idx) {
+                adv.deck_additions.push(card.id.clone());
             }
         }
     }
@@ -340,6 +384,26 @@ impl BaseState {
             20.0,
             PURPLE,
         );
+        draw_text(
+            &format!("Day: {}  Threat: {}", kingdom.day, kingdom.threat_level),
+            20.0,
+            y_start + 125.0,
+            20.0,
+            RED,
+        );
+
+        if kingdom.game_won {
+            draw_text(
+                "ENDING SECURED: Permanent Citadel Established",
+                20.0,
+                y_start + 150.0,
+                18.0,
+                GREEN,
+            );
+        } else if let Some(event) = &kingdom.last_event {
+            draw_text("Kingdom Event:", 20.0, y_start + 150.0, 18.0, YELLOW);
+            draw_text(event, 20.0, y_start + 172.0, 16.0, LIGHTGRAY);
+        }
 
         // Draw selected adventurer image large
         if self.focus == FocusArea::Roster {
@@ -350,7 +414,7 @@ impl BaseState {
                             draw_texture_ex(
                                 tex,
                                 20.0,
-                                y_start + 150.0,
+                                y_start + 205.0,
                                 WHITE,
                                 DrawTextureParams {
                                     dest_size: Some(vec2(250.0, 250.0)),
@@ -447,8 +511,9 @@ impl BaseState {
             );
 
             // Class and deck size (base deck is ~5 cards per class + additions)
-            let base_deck_size = 5; // Class cards + Any cards
-            let deck_size = base_deck_size + adv.deck_additions.len();
+            let class_name = format!("{:?}", adv.class);
+            let deck_size =
+                crate::combat::Card::load_deck_for_class(&class_name, &adv.deck_additions).len();
             draw_text(
                 &format!("{:?} • {} cards", adv.class, deck_size),
                 roster_x + 200.0,
@@ -482,6 +547,46 @@ impl BaseState {
                 14.0,
                 ORANGE,
             );
+        }
+
+        // Selected adventurer details
+        if self.focus == FocusArea::Roster {
+            if let Some(idx) = self.selected_adventurer {
+                if let Some(adv) = roster.adventurers.get(idx) {
+                    let detail_y = y_start + 465.0;
+                    draw_text(
+                        &format!("Level {}  XP {}", adv.level, adv.xp),
+                        20.0,
+                        detail_y,
+                        18.0,
+                        WHITE,
+                    );
+                    if let Some(resolve) = &adv.resolve_state {
+                        draw_text(
+                            &format!("Resolve: {:?}", resolve),
+                            20.0,
+                            detail_y + 22.0,
+                            16.0,
+                            YELLOW,
+                        );
+                    }
+                    if !adv.traumas.is_empty() {
+                        let names = adv
+                            .traumas
+                            .iter()
+                            .map(|t| t.name())
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        draw_text(
+                            &format!("Trauma: {}", names),
+                            20.0,
+                            detail_y + 44.0,
+                            16.0,
+                            RED,
+                        );
+                    }
+                }
+            }
         }
 
         // --- BUILDINGS PANEL ---
@@ -561,6 +666,16 @@ impl BaseState {
             }
         }
 
+        // Quest log
+        let quest_x = (screen_width() - 260.0).max(700.0);
+        draw_text("QUEST LOG", quest_x, 120.0, 22.0, YELLOW);
+        for (i, (quest, done)) in kingdom.quest_log().iter().enumerate() {
+            let y = 150.0 + (i as f32 * 24.0);
+            let mark = if *done { "[x]" } else { "[ ]" };
+            let color = if *done { GREEN } else { LIGHTGRAY };
+            draw_text(&format!("{} {}", mark, quest), quest_x, y, 16.0, color);
+        }
+
         // DECK VIEWER OVERLAY
         if self.viewing_deck {
             if let Some(idx) = self.selected_adventurer {
@@ -578,15 +693,9 @@ impl BaseState {
                     draw_text("[ESC] Close", screen_width() - 150.0, 50.0, 20.0, GRAY);
 
                     // Reconstruct deck
-                    // Note: This is inefficient to do every frame, but fine for simple prototype
-                    let mut deck = crate::data::cards::load_starter_deck().unwrap_or_default();
-                    if let Ok(all_cards) = crate::data::cards::CardData::load_all() {
-                        for id in &adv.deck_additions {
-                            if let Some(data) = all_cards.iter().find(|c| c.id == *id) {
-                                deck.push(data.to_card());
-                            }
-                        }
-                    }
+                    let class_name = format!("{:?}", adv.class);
+                    let deck =
+                        crate::combat::Card::load_deck_for_class(&class_name, &adv.deck_additions);
 
                     // Draw Cards Grid
                     let start_x = 50.0;
@@ -657,6 +766,7 @@ impl BaseState {
                         .buildings
                         .iter()
                         .any(|b| b.id == "guild_hall" && b.built);
+                    let has_foundry = kingdom.has_building("foundry");
 
                     if has_infirmary {
                         s.push_str("  [H] Heal(10s)");
@@ -666,6 +776,9 @@ impl BaseState {
                     }
                     if has_guild {
                         s.push_str("  [R] Recruit");
+                    }
+                    if has_foundry {
+                        s.push_str("  [U] Learn Card");
                     }
 
                     s

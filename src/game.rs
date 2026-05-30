@@ -44,7 +44,7 @@ pub struct Game {
 impl Game {
     pub async fn new() -> Self {
         // Try to load existing save
-        let (kingdom, roster) = if SaveData::exists(&SaveData::default_path()) {
+        let (mut kingdom, roster) = if SaveData::exists(&SaveData::default_path()) {
             match SaveData::load(&SaveData::default_path()) {
                 Ok(save) => {
                     eprintln!("Loaded save file");
@@ -58,6 +58,7 @@ impl Game {
         } else {
             (KingdomState::default(), Roster::starter())
         };
+        kingdom.ensure_current_buildings();
 
         // Load textures
         let mut textures = HashMap::new();

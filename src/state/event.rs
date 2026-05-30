@@ -3,7 +3,7 @@
 use super::{MissionState, StateTransition};
 use crate::kingdom::PartyMemberState;
 use crate::missions::events::{Event, EventOutcome};
-use crate::missions::Mission;
+use crate::missions::{MapNode, Mission};
 use macroquad::prelude::*;
 use std::collections::HashMap;
 
@@ -33,6 +33,8 @@ pub struct MissionReturnContext {
     pub mission: Mission,
     pub current_node: usize,
     pub party_members: Vec<PartyMemberState>,
+    pub map_nodes: Vec<MapNode>,
+    pub visited_nodes: Vec<usize>,
 }
 
 impl EventState {
@@ -59,11 +61,15 @@ impl EventState {
         mission: Mission,
         current_node: usize,
         party_members: Vec<PartyMemberState>,
+        map_nodes: Vec<MapNode>,
+        visited_nodes: Vec<usize>,
     ) -> Self {
         self.mission_context = Some(MissionReturnContext {
             mission,
             current_node,
             party_members,
+            map_nodes,
+            visited_nodes,
         });
         self
     }
@@ -160,7 +166,9 @@ impl EventState {
 
                 let mission_state =
                     MissionState::from_mission_with_party(ctx.mission.clone(), updated_members)
-                        .with_node(ctx.current_node);
+                        .with_node(ctx.current_node)
+                        .with_map_nodes(ctx.map_nodes.clone())
+                        .with_visited(ctx.visited_nodes.clone());
                 return Some(StateTransition::ToMission(mission_state));
             } else {
                 return Some(StateTransition::ToBase);

@@ -6,6 +6,7 @@
         "base_damage": 6,
         "threat_level": 1,
         "region": "dark_woods",
+        "ai_pattern": "Bruiser",
         "image_path": "assets/images/enemies/forest_beast.png"
     },
     {
@@ -15,6 +16,7 @@
         "base_damage": 8,
         "threat_level": 1,
         "region": "dark_woods",
+        "ai_pattern": "Ravager",
         "image_path": "assets/images/enemies/wild_boar.png"
     },
     {
@@ -24,6 +26,7 @@
         "base_damage": 7,
         "threat_level": 2,
         "region": "dark_woods",
+        "ai_pattern": "Harrier",
         "image_path": "assets/images/enemies/shadow_wolf.png"
     },
     {
@@ -33,6 +36,67 @@
         "base_damage": 10,
         "threat_level": 3,
         "region": "dark_woods",
+        "ai_pattern": "Regenerator",
+        "image_path": "assets/images/enemies/corrupted_treant.png"
+    },
+    {
+        "id": "outpost_sentinel",
+        "name": "Outpost Sentinel",
+        "max_hp": 38,
+        "base_damage": 7,
+        "threat_level": 2,
+        "region": "ruined_outpost",
+        "ai_pattern": "Guardian",
+        "image_path": "assets/images/enemies/corrupted_treant.png"
+    },
+    {
+        "id": "grave_archer",
+        "name": "Grave Archer",
+        "max_hp": 24,
+        "base_damage": 8,
+        "threat_level": 2,
+        "region": "ruined_outpost",
+        "ai_pattern": "Harrier",
+        "image_path": "assets/images/enemies/shadow_wolf.png"
+    },
+    {
+        "id": "returned_sergeant",
+        "name": "Returned Sergeant",
+        "max_hp": 44,
+        "base_damage": 9,
+        "threat_level": 3,
+        "region": "ruined_outpost",
+        "ai_pattern": "Bruiser",
+        "image_path": "assets/images/enemies/forest_beast.png"
+    },
+    {
+        "id": "mist_drowned",
+        "name": "Mist-Drowned",
+        "max_hp": 32,
+        "base_damage": 7,
+        "threat_level": 3,
+        "region": "sunken_valley",
+        "ai_pattern": "Hexer",
+        "image_path": "assets/images/enemies/shadow_wolf.png"
+    },
+    {
+        "id": "bog_mireling",
+        "name": "Bog Mireling",
+        "max_hp": 26,
+        "base_damage": 6,
+        "threat_level": 2,
+        "region": "sunken_valley",
+        "ai_pattern": "Regenerator",
+        "image_path": "assets/images/enemies/wild_boar.png"
+    },
+    {
+        "id": "sunken_knight",
+        "name": "Sunken Knight",
+        "max_hp": 55,
+        "base_damage": 11,
+        "threat_level": 4,
+        "region": "sunken_valley",
+        "ai_pattern": "Ravager",
         "image_path": "assets/images/enemies/corrupted_treant.png"
     }
 ]

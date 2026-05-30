@@ -87,11 +87,6 @@ impl CombatResolver {
                 if player.has_status(crate::kingdom::StatusType::Weak) {
                     dmg = (dmg as f32 * 0.75) as i32;
                 }
-                // Apply Vulnerable (+50% damage taken)
-                if target.has_status(crate::kingdom::StatusType::Vulnerable) {
-                    dmg = (dmg as f32 * 1.5) as i32;
-                }
-
                 target.take_damage(dmg);
                 self.log
                     .push(format!("{} takes {} damage", target.name, dmg));
@@ -112,9 +107,18 @@ impl CombatResolver {
                     .push(format!("{} gains {} stress (self)", player.name, amount));
             }
             CardEffect::ReduceStress(amount) => {
-                player.reduce_stress(*amount);
-                self.log
-                    .push(format!("{} reduces stress by {}", player.name, amount));
+                if player
+                    .traumas
+                    .iter()
+                    .any(|t| t.trauma_type == crate::kingdom::TraumaType::Hopeless)
+                {
+                    self.log
+                        .push(format!("{} cannot calm down while Hopeless", player.name));
+                } else {
+                    player.reduce_stress(*amount);
+                    self.log
+                        .push(format!("{} reduces stress by {}", player.name, amount));
+                }
             }
             CardEffect::Heal(amount) => {
                 player.heal(*amount);

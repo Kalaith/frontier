@@ -150,6 +150,8 @@ impl MissionState {
                                     self.mission.clone(),
                                     self.current_node_id,
                                     self.party_members.clone(),
+                                    self.map_nodes.clone(),
+                                    self.visited_nodes.clone(),
                                 );
                         return Some(StateTransition::ToEvent(event_state));
                     }
@@ -213,13 +215,10 @@ impl MissionState {
                                 }
 
                                 if self.is_complete() {
-                                    let mut results =
-                                        ResultState::victory_for_party(&self.party_members);
-                                    results.stress_gained = self.mission.base_stress;
-                                    results.rewards = vec![
-                                        format!("+{} Supplies", self.mission.reward_supplies),
-                                        format!("+{} Knowledge", self.mission.reward_knowledge),
-                                    ];
+                                    let results = ResultState::victory_for_mission(
+                                        &self.mission,
+                                        &self.party_members,
+                                    );
                                     return Some(StateTransition::ToResults(results));
                                 }
                                 break;
@@ -248,12 +247,8 @@ impl MissionState {
 
                     // If mission complete after this node
                     if self.is_complete() {
-                        let mut results = ResultState::victory_for_party(&self.party_members);
-                        results.stress_gained = self.mission.base_stress;
-                        results.rewards = vec![
-                            format!("+{} Supplies", self.mission.reward_supplies),
-                            format!("+{} Knowledge", self.mission.reward_knowledge),
-                        ];
+                        let results =
+                            ResultState::victory_for_mission(&self.mission, &self.party_members);
                         return Some(StateTransition::ToResults(results));
                     }
                 }
@@ -266,12 +261,8 @@ impl MissionState {
 
                     if connections.is_empty() {
                         // Mission complete!
-                        let mut results = ResultState::victory_for_party(&self.party_members);
-                        results.stress_gained = self.mission.base_stress;
-                        results.rewards = vec![
-                            format!("+{} Supplies", self.mission.reward_supplies),
-                            format!("+{} Knowledge", self.mission.reward_knowledge),
-                        ];
+                        let results =
+                            ResultState::victory_for_mission(&self.mission, &self.party_members);
                         return Some(StateTransition::ToResults(results));
                     } else if connections.len() == 1 {
                         // Only one path - auto-advance

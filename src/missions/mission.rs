@@ -63,6 +63,8 @@ pub struct Mission {
     pub difficulty: i32,
 
     /// Expected rewards
+    #[serde(default = "default_reward_gold")]
+    pub reward_gold: i32,
     pub reward_supplies: i32,
     pub reward_knowledge: i32,
     pub reward_influence: i32,
@@ -73,6 +75,10 @@ pub struct Mission {
     /// Requirement to unlock this mission
     #[serde(default)]
     pub unlock_requirement: UnlockRequirement,
+}
+
+fn default_reward_gold() -> i32 {
+    20
 }
 
 impl Mission {
@@ -86,6 +92,7 @@ impl Mission {
             region_id: "dark_woods".to_string(),
             length: 5,
             difficulty: 1,
+            reward_gold: 25,
             reward_supplies: 10,
             reward_knowledge: 15,
             reward_influence: 0,
@@ -104,6 +111,7 @@ impl Mission {
             region_id: "dark_woods".to_string(),
             length: 6,
             difficulty: 2,
+            reward_gold: 45,
             reward_supplies: 20,
             reward_knowledge: 5,
             reward_influence: 10,
@@ -172,6 +180,14 @@ impl Mission {
             MissionType::Suppress => self.difficulty + 1,
             _ => self.difficulty,
         }
+    }
+
+    /// Clone this mission with global threat pressure applied.
+    pub fn scaled_for_kingdom(&self, kingdom: &crate::kingdom::KingdomState) -> Self {
+        let mut mission = self.clone();
+        mission.difficulty += kingdom.threat_difficulty_bonus();
+        mission.base_stress += kingdom.scaled_stress_bonus();
+        mission
     }
 
     /// Generate a branching map for this mission

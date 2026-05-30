@@ -1,7 +1,8 @@
 //! Results state - post-mission consequences and resolution
 
 use super::StateTransition;
-use crate::kingdom::{KingdomState, PartyMemberState, Roster};
+use crate::kingdom::{Injury, KingdomState, PartyMemberState, Roster};
+use crate::missions::Mission;
 use macroquad::prelude::*;
 
 /// Post-mission results state
@@ -12,6 +13,12 @@ pub struct ResultState {
     pub injuries: Vec<String>,
     pub rewards: Vec<String>,
     pub adventurer_id: String,
+    pub mission_id: Option<String>,
+    pub mission_difficulty: i32,
+    pub reward_gold: i32,
+    pub reward_supplies: i32,
+    pub reward_knowledge: i32,
+    pub reward_influence: i32,
     /// All party member IDs and their final states (for future party-wide results)
     #[allow(dead_code)]
     pub party_member_states: Vec<PartyMemberState>,
@@ -40,6 +47,12 @@ impl ResultState {
                 "+5 Knowledge".to_string(),
             ],
             adventurer_id: adventurer_id.to_string(),
+            mission_id: None,
+            mission_difficulty: 1,
+            reward_gold: 20,
+            reward_supplies: 10,
+            reward_knowledge: 5,
+            reward_influence: 0,
             party_member_states: vec![],
             final_hp: None,
             final_stress: None,
@@ -63,10 +76,38 @@ impl ResultState {
                 "+5 Knowledge".to_string(),
             ],
             adventurer_id,
+            mission_id: None,
+            mission_difficulty: 1,
+            reward_gold: 20,
+            reward_supplies: 10,
+            reward_knowledge: 5,
+            reward_influence: 0,
             party_member_states: party_members.to_vec(),
             final_hp: None,
             final_stress: None,
         }
+    }
+
+    pub fn victory_for_mission(mission: &Mission, party_members: &[PartyMemberState]) -> Self {
+        let mut result = Self::victory_for_party(party_members);
+        result.mission_id = Some(mission.id.clone());
+        result.mission_difficulty = mission.difficulty;
+        result.stress_gained = mission.base_stress;
+        result.reward_gold = mission.reward_gold;
+        result.reward_supplies = mission.reward_supplies;
+        result.reward_knowledge = mission.reward_knowledge;
+        result.reward_influence = mission.reward_influence;
+        result.rewards = vec![
+            format!("{} Gold", mission.reward_gold),
+            format!("{} Supplies", mission.reward_supplies),
+            format!("{} Knowledge", mission.reward_knowledge),
+        ];
+        if mission.reward_influence > 0 {
+            result
+                .rewards
+                .push(format!("{} Influence", mission.reward_influence));
+        }
+        result
     }
 
     pub fn defeat_for(adventurer_id: &str) -> Self {
@@ -77,6 +118,12 @@ impl ResultState {
             injuries: vec!["Wounded Leg".to_string()],
             rewards: vec![],
             adventurer_id: adventurer_id.to_string(),
+            mission_id: None,
+            mission_difficulty: 1,
+            reward_gold: 0,
+            reward_supplies: 0,
+            reward_knowledge: 0,
+            reward_influence: 0,
             party_member_states: vec![],
             final_hp: None,
             final_stress: None,
@@ -96,10 +143,24 @@ impl ResultState {
             injuries: vec!["Wounded Leg".to_string()],
             rewards: vec![],
             adventurer_id,
+            mission_id: None,
+            mission_difficulty: 1,
+            reward_gold: 0,
+            reward_supplies: 0,
+            reward_knowledge: 0,
+            reward_influence: 0,
             party_member_states: party_members.to_vec(),
             final_hp: None,
             final_stress: None,
         }
+    }
+
+    pub fn defeat_for_mission(mission: &Mission, party_members: &[PartyMemberState]) -> Self {
+        let mut result = Self::defeat_for_party(party_members);
+        result.mission_id = Some(mission.id.clone());
+        result.mission_difficulty = mission.difficulty;
+        result.stress_gained = mission.base_stress + 10;
+        result
     }
 
     pub fn update(
@@ -110,47 +171,161 @@ impl ResultState {
         if is_key_pressed(KeyCode::Enter) {
             // Apply consequences to kingdom
             if self.victory {
-                kingdom.stats.gold += 20;
-                kingdom.stats.supplies += 10;
-                kingdom.stats.knowledge += 5;
+                kingdom.stats.gold += self.reward_gold;
+                kingdom.stats.supplies += self.reward_supplies;
+                kingdom.stats.knowledge += self.reward_knowledge;
+                kingdom.stats.influence += self.reward_influence;
+                kingdom.stats.security = (kingdom.stats.security + 3).min(100);
+                if let Some(mission_id) = &self.mission_id {
+                    kingdom.record_mission_complete(mission_id);
+                }
             } else {
-                kingdom.stats.morale -= 10;
+                kingdom.stats.morale = (kingdom.stats.morale - 10).max(0);
+                kingdom.stats.security = (kingdom.stats.security - 5).max(0);
             }
 
-            // Check for death
-            let is_dead = if let Some(final_hp) = self.final_hp {
-                final_hp <= 0
-            } else {
-                false
-            };
-
-            // Apply consequences to adventurer
-            if is_dead {
-                roster.record_death(&self.adventurer_id);
-            } else if let Some(adv) = roster.get_mut(&self.adventurer_id) {
-                // Use final values if we have them, otherwise calculate
-                if let Some(final_hp) = self.final_hp {
-                    adv.hp = final_hp.max(1);
-                } else {
-                    adv.hp = (adv.hp - self.hp_lost).max(1);
-                }
-
-                if let Some(final_stress) = self.final_stress {
-                    adv.stress = final_stress.min(100);
-                } else {
-                    adv.stress = (adv.stress + self.stress_gained).min(100);
-                }
-
-                // Victory bonuses
-                if self.victory {
-                    adv.missions_completed += 1;
-                }
-            }
+            self.apply_roster_results(roster);
+            kingdom.day += 1;
+            kingdom.advance_threat(self.victory);
+            kingdom.last_event = self.roll_kingdom_event(kingdom, roster);
 
             return Some(StateTransition::ToBase);
         }
 
         None
+    }
+
+    fn apply_roster_results(&self, roster: &mut Roster) {
+        if self.party_member_states.is_empty() {
+            self.apply_single_adventurer(roster);
+            return;
+        }
+
+        for state in &self.party_member_states {
+            if state.hp <= 0 {
+                roster.record_death(&state.id);
+                continue;
+            }
+
+            if let Some(adv) = roster.get_mut(&state.id) {
+                adv.hp = state.hp.max(1).min(adv.max_hp);
+                if state.resolve_state.is_some() {
+                    adv.resolve_state = state.resolve_state.clone();
+                }
+                for trauma in &state.traumas {
+                    if !adv
+                        .traumas
+                        .iter()
+                        .any(|existing| existing.trauma_type == trauma.trauma_type)
+                    {
+                        adv.traumas.push(trauma.clone());
+                    }
+                }
+
+                let stress_delta = state.stress - adv.stress;
+                if stress_delta < 0 {
+                    adv.reduce_stress(-stress_delta);
+                }
+                let total_stress_gain = stress_delta.max(0) + self.stress_gained;
+                if total_stress_gain > 0 {
+                    adv.apply_stress_gain(total_stress_gain);
+                }
+
+                if adv.hp <= adv.max_hp / 3 && !adv.injuries.iter().any(|i| i.id == "wounded_leg") {
+                    adv.injuries.push(Injury::wounded_leg());
+                }
+
+                if self.victory {
+                    adv.missions_completed += 1;
+                    adv.xp += 10 + (self.mission_difficulty * 2);
+                    let needed = adv.level * 20;
+                    if adv.xp >= needed {
+                        adv.xp -= needed;
+                        adv.level += 1;
+                        adv.max_hp += 3;
+                        adv.hp = (adv.hp + 3).min(adv.max_hp);
+                    }
+                } else if !adv.injuries.iter().any(|i| i.id == "broken_arm") {
+                    adv.injuries.push(Injury::broken_arm());
+                }
+            }
+        }
+    }
+
+    fn apply_single_adventurer(&self, roster: &mut Roster) {
+        let is_dead = self.final_hp.map_or(false, |final_hp| final_hp <= 0);
+        if is_dead {
+            roster.record_death(&self.adventurer_id);
+            return;
+        }
+
+        if let Some(adv) = roster.get_mut(&self.adventurer_id) {
+            if let Some(final_hp) = self.final_hp {
+                adv.hp = final_hp.max(1);
+            } else {
+                adv.hp = (adv.hp - self.hp_lost).max(1);
+            }
+
+            if let Some(final_stress) = self.final_stress {
+                let delta = final_stress - adv.stress;
+                if delta >= 0 {
+                    adv.apply_stress_gain(delta);
+                } else {
+                    adv.reduce_stress(-delta);
+                }
+            } else {
+                adv.apply_stress_gain(self.stress_gained);
+            }
+
+            if self.victory {
+                adv.missions_completed += 1;
+            }
+        }
+    }
+
+    fn roll_kingdom_event(
+        &self,
+        kingdom: &mut KingdomState,
+        roster: &mut Roster,
+    ) -> Option<String> {
+        if !macroquad_toolkit::rng::chance(0.45) {
+            return None;
+        }
+
+        match macroquad_toolkit::rng::gen_range(0, 4) {
+            0 => {
+                kingdom.stats.morale = (kingdom.stats.morale - 6).max(0);
+                if let Some(adv) = roster.adventurers.first_mut() {
+                    adv.apply_stress_gain(6);
+                }
+                Some("Plague: morale fell and the roster gained stress.".to_string())
+            }
+            1 => {
+                let stolen = kingdom.stats.gold.min(25);
+                kingdom.stats.gold -= stolen;
+                Some(format!(
+                    "Thieves: {} gold was stolen from the stores.",
+                    stolen
+                ))
+            }
+            2 => {
+                if kingdom.stats.gold >= 15 {
+                    kingdom.stats.gold -= 15;
+                    kingdom.stats.supplies += 25;
+                    Some("Traders: paid 15 gold for 25 supplies.".to_string())
+                } else {
+                    kingdom.stats.gold += 10;
+                    Some("Traders: a small debt was forgiven for 10 gold.".to_string())
+                }
+            }
+            _ => {
+                kingdom.stats.morale = (kingdom.stats.morale + 8).min(100);
+                for adv in &mut roster.adventurers {
+                    adv.reduce_stress(3);
+                }
+                Some("Festival: morale rose and adventurers shed a little stress.".to_string())
+            }
+        }
     }
 
     pub fn draw(&self, _textures: &std::collections::HashMap<String, Texture2D>) {

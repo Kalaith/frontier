@@ -1,6 +1,6 @@
 //! Enemy data loading from JSON
 
-use crate::combat::Unit;
+use crate::combat::{EnemyAiPattern, Unit};
 use serde::{Deserialize, Serialize};
 
 /// Enemy template from data file
@@ -13,6 +13,8 @@ pub struct EnemyData {
     pub threat_level: i32,
     pub region: String,
     #[serde(default)]
+    pub ai_pattern: EnemyAiPattern,
+    #[serde(default)]
     pub image_path: Option<String>,
 }
 
@@ -24,24 +26,41 @@ impl EnemyData {
 
     /// Convert to a combat Unit
     pub fn to_unit(&self) -> Unit {
-        Unit::new_enemy_with_damage(
+        let mut unit = Unit::new_enemy_with_pattern(
             &self.name,
             self.max_hp,
             self.base_damage,
             self.image_path.clone(),
-        )
+            self.ai_pattern.clone(),
+        );
+        unit.roll_intent(1);
+        unit
     }
 }
 
 /// Get a random enemy appropriate for the given difficulty
+#[allow(dead_code)]
 pub fn random_enemy_for_difficulty(difficulty: i32) -> Unit {
+    random_enemy_for_region_and_difficulty("", difficulty)
+}
+
+/// Get a random enemy appropriate for region and difficulty.
+pub fn random_enemy_for_region_and_difficulty(region_id: &str, difficulty: i32) -> Unit {
     match EnemyData::load_all() {
         Ok(enemies) => {
-            // Filter to enemies at or below the difficulty
-            let suitable: Vec<_> = enemies
+            let mut suitable: Vec<_> = enemies
                 .iter()
-                .filter(|e| e.threat_level <= difficulty)
+                .filter(|e| {
+                    e.threat_level <= difficulty && (region_id.is_empty() || e.region == region_id)
+                })
                 .collect();
+
+            if suitable.is_empty() && !region_id.is_empty() {
+                suitable = enemies
+                    .iter()
+                    .filter(|e| e.threat_level <= difficulty)
+                    .collect();
+            }
 
             if suitable.is_empty() {
                 // Fallback to any enemy

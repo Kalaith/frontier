@@ -10,4 +10,4 @@ mod unit;
 pub use card::{Card, CardClass};
 pub use effects::CardEffect;
 pub use resolver::CombatResolver;
-pub use unit::{EnemyIntent, Unit};
+pub use unit::{EnemyAiPattern, EnemyIntent, Unit};

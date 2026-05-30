@@ -15,6 +15,10 @@ pub struct Adventurer {
     pub hp: i32,
     pub max_hp: i32,
     pub stress: i32,
+    #[serde(default)]
+    pub resolve_state: Option<ResolveState>,
+    #[serde(default)]
+    pub heart_attacks: u32,
     pub level: i32,
     pub xp: i32,
 
@@ -74,6 +78,8 @@ impl Adventurer {
             hp: base_hp,
             max_hp: base_hp,
             stress: 0,
+            resolve_state: None,
+            heart_attacks: 0,
             level: 1,
             xp: 0,
             traits: vec![],
@@ -103,24 +109,99 @@ impl Adventurer {
     /// Apply stress, potentially triggering trauma
     #[allow(dead_code)]
     pub fn add_stress(&mut self, amount: i32) -> Option<Trauma> {
-        self.stress += amount;
+        let before = self.stress;
+        self.stress = (self.stress + amount).max(0);
+        let reached_max_stress = self.stress >= 200;
 
-        // Trauma check at thresholds
+        if amount <= 0 {
+            return None;
+        }
+
+        if before < 100 && self.stress >= 100 && self.resolve_state.is_none() {
+            self.resolve_check();
+        }
+
+        let trauma = self.trauma_for_current_stress();
+
+        if reached_max_stress || self.stress >= 200 {
+            self.heart_attack();
+        }
+
+        trauma
+    }
+
+    /// Apply stress and return human-readable consequences for the result screen.
+    pub fn apply_stress_gain(&mut self, amount: i32) -> Vec<String> {
+        let before = self.stress;
+        let mut messages = Vec::new();
+        let trauma = self.add_stress(amount);
+
+        if let Some(trauma) = trauma {
+            messages.push(format!("{} gained trauma: {}", self.name, trauma.name()));
+        }
+
+        if before < 100 && self.resolve_state.is_some() {
+            match self.resolve_state {
+                Some(ResolveState::Virtuous) => messages.push(format!(
+                    "{} passed a Resolve Check and became Virtuous",
+                    self.name
+                )),
+                Some(ResolveState::Afflicted) => messages.push(format!(
+                    "{} failed a Resolve Check and became Afflicted",
+                    self.name
+                )),
+                None => {}
+            }
+        }
+
+        if self.heart_attacks > 0 && self.stress >= 100 {
+            messages.push(format!("{} suffered a Heart Attack", self.name));
+        }
+
+        messages
+    }
+
+    fn trauma_for_current_stress(&mut self) -> Option<Trauma> {
         if self.stress >= 100 && !self.has_trauma(TraumaType::Broken) {
             let trauma = Trauma::new(TraumaType::Broken);
             self.traumas.push(trauma.clone());
-            return Some(trauma);
+            Some(trauma)
         } else if self.stress >= 75 && !self.has_trauma(TraumaType::Paranoid) {
             let trauma = Trauma::new(TraumaType::Paranoid);
             self.traumas.push(trauma.clone());
-            return Some(trauma);
+            Some(trauma)
         } else if self.stress >= 50 && !self.has_trauma(TraumaType::Fearful) {
             let trauma = Trauma::new(TraumaType::Fearful);
             self.traumas.push(trauma.clone());
-            return Some(trauma);
+            Some(trauma)
+        } else {
+            None
         }
+    }
 
-        None
+    fn resolve_check(&mut self) {
+        if macroquad_toolkit::rng::chance(0.25) {
+            self.resolve_state = Some(ResolveState::Virtuous);
+            self.stress = 80;
+            self.traits.push(Trait {
+                id: "steadfast".to_string(),
+                name: "Steadfast".to_string(),
+                description: "Passed a Resolve Check; stress relief is more effective.".to_string(),
+                is_positive: true,
+            });
+        } else {
+            self.resolve_state = Some(ResolveState::Afflicted);
+            if !self.has_trauma(TraumaType::Broken) {
+                self.traumas.push(Trauma::new(TraumaType::Broken));
+            }
+            self.stress = 100;
+        }
+    }
+
+    fn heart_attack(&mut self) {
+        self.heart_attacks += 1;
+        self.hp -= (self.max_hp / 2).max(1);
+        self.stress = 100;
     }
 
     fn has_trauma(&self, trauma_type: TraumaType) -> bool {
@@ -129,7 +210,15 @@ impl Adventurer {
 
     /// Reduce stress (at base, costs resources)
     pub fn reduce_stress(&mut self, amount: i32) {
-        self.stress = (self.stress - amount).max(0);
+        let effective = if self.resolve_state == Some(ResolveState::Virtuous) {
+            amount + 5
+        } else {
+            amount
+        };
+        self.stress = (self.stress - effective).max(0);
+        if self.stress < 50 {
+            self.resolve_state = None;
+        }
     }
 
     /// Heal HP (at infirmary)
@@ -157,6 +246,13 @@ pub enum AdventurerClass {
 pub enum Gender {
     Male,
     Female,
+}
+
+/// Result of a high-stress resolve check
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum ResolveState {
+    Virtuous,
+    Afflicted,
 }
 
 /// Positive or negative traits affecting gameplay
@@ -215,6 +311,15 @@ impl Trauma {
         Self {
             trauma_type,
             severity: 1,
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self.trauma_type {
+            TraumaType::Fearful => "Fearful",
+            TraumaType::Paranoid => "Paranoid",
+            TraumaType::Broken => "Broken",
+            TraumaType::Hopeless => "Hopeless",
         }
     }
 }
