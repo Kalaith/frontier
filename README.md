@@ -6,9 +6,12 @@ Frontier Kingdom is a dark expedition card RPG built in Rust with Macroquad. You
 
 - Party formation with soldiers, scouts, healers, and mystics.
 - Gendered adventurer portraits and class-specific card pools.
+- Candlelit command-table base UI with top-level tabs, facility cards, action bar, and contextual detail panels.
+- Embark preparation screen with party risk, mission briefing, readable locked requirements, and rewards.
 - Branching mission maps with combat, event, rest, and boss nodes.
+- Expedition route panel with anchored party status and node legend.
 - Region-aware enemy spawning from JSON data.
-- Turn-based card combat with energy, enemy intents, block, status effects, and hover tooltips.
+- Turn-based card combat with central enemy intent, battle report preview, energy, block, status effects, and hover tooltips.
 - Stress, resolve checks, trauma, heart attacks, injuries, death, and a graveyard.
 - Kingdom facilities for healing, stress relief, recruitment, card learning, and the citadel win condition.
 - Threat scaling, economy rewards, quest log, random kingdom events, save/load, and deck viewer.
@@ -22,7 +25,7 @@ Frontier Kingdom is a dark expedition card RPG built in Rust with Macroquad. You
 
 ## Controls
 
-- `Tab`: switch base focus between roster and buildings.
+- `Tab`: cycle base tabs.
 - `1-9`: select roster, building, mission, path, or combat card depending on screen.
 - `M`: form a party from the selected adventurer.
 - `D`: view the selected adventurer's deck.
@@ -37,7 +40,7 @@ Frontier Kingdom is a dark expedition card RPG built in Rust with Macroquad. You
 - `Esc`: close overlays, cancel, retreat, or return.
 - `F5` / `F9`: save and load from the base.
 
-Mouse selection is supported for roster cards, building cards, event choices, mission path nodes, combat cards, and the end-turn button.
+Mouse selection is supported for roster rows, facility cards, action buttons, mission cards, event choices, mission path nodes, combat cards, and the end-turn button.
 
 ## Build And Run
 
@@ -69,5 +72,6 @@ Generated build outputs belong in ignored directories such as `target/` and `dis
 - `assets/`: shipped JSON data and runtime images.
 - `gdd.md`: game design notes.
 - `tech_spec.md`: architecture notes.
+- `ui_redesign_plan.md`: command-table UI redesign plan and priorities.
 - `roadmap.md`: completed roadmap checklist.
 - `generate_assets.ps1`, `comfyui-*.ps1`: optional local asset-generation tooling.

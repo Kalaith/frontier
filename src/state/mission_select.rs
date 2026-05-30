@@ -2,8 +2,21 @@
 
 use super::{MissionState, StateTransition};
 use crate::kingdom::{KingdomState, Party, PartyMemberState, Roster};
-use crate::missions::{load_missions, Mission};
+use crate::missions::{load_missions, Mission, MissionType};
 use macroquad::prelude::*;
+
+const HEADER_H: f32 = 86.0;
+const SIDE_PAD: f32 = 24.0;
+const PANEL_Y: f32 = 104.0;
+const PANEL_H: f32 = 455.0;
+const PARTY_X: f32 = 24.0;
+const PARTY_W: f32 = 306.0;
+const BOARD_X: f32 = 350.0;
+const BOARD_W: f32 = 430.0;
+const DETAIL_X: f32 = 800.0;
+const DETAIL_W: f32 = 440.0;
+const CARD_H: f32 = 62.0;
+const CARD_GAP: f32 = 8.0;
 
 /// State for selecting a mission before departure
 pub struct MissionSelectState {
@@ -49,7 +62,7 @@ impl MissionSelectState {
             .member_ids
             .iter()
             .filter_map(|id| roster.get(id))
-            .map(|adv| PartyMemberState::from_adventurer(adv))
+            .map(PartyMemberState::from_adventurer)
             .collect();
 
         Self {
@@ -70,7 +83,6 @@ impl MissionSelectState {
     }
 
     pub fn update(&mut self, _roster: &Roster, kingdom: &KingdomState) -> Option<StateTransition> {
-        // Mission selection with arrow keys or number keys
         if is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W) {
             if self.selected_mission > 0 {
                 self.selected_mission -= 1;
@@ -82,49 +94,56 @@ impl MissionSelectState {
             }
         }
 
-        // Number keys for quick selection
         for i in 0..self.missions.len().min(9) {
-            let key = match i {
-                0 => KeyCode::Key1,
-                1 => KeyCode::Key2,
-                2 => KeyCode::Key3,
-                3 => KeyCode::Key4,
-                4 => KeyCode::Key5,
-                5 => KeyCode::Key6,
-                6 => KeyCode::Key7,
-                7 => KeyCode::Key8,
-                8 => KeyCode::Key9,
-                _ => continue,
-            };
-
-            if is_key_pressed(key) {
+            if is_key_pressed(number_key(i)) {
                 self.selected_mission = i;
             }
         }
 
-        // Confirm mission with Enter (only if unlocked)
-        if is_key_pressed(KeyCode::Enter) {
-            if let Some(mission) = self.missions.get(self.selected_mission) {
-                // Check if mission is unlocked
-                if self.is_mission_unlocked(mission, kingdom) {
-                    if let Some(_leader) = self.leader() {
-                        let scaled_mission = mission.scaled_for_kingdom(kingdom);
-                        let mission_state = MissionState::from_mission_with_party(
-                            scaled_mission,
-                            self.party_members.clone(),
-                        );
-                        return Some(StateTransition::ToMission(mission_state));
+        for i in 0..self.missions.len() {
+            let (x, y, w, h) = mission_card_rect(i);
+            if crate::ui::was_clicked(x, y, w, h) {
+                if self.selected_mission == i {
+                    if let Some(transition) = self.start_selected_mission(kingdom) {
+                        return Some(transition);
                     }
+                } else {
+                    self.selected_mission = i;
                 }
             }
         }
 
-        // Cancel with Escape
-        if is_key_pressed(KeyCode::Escape) {
+        if is_key_pressed(KeyCode::Enter) {
+            if let Some(transition) = self.start_selected_mission(kingdom) {
+                return Some(transition);
+            }
+        }
+
+        if crate::ui::was_clicked(DETAIL_X, 579.0, 142.0, 38.0) {
+            if let Some(transition) = self.start_selected_mission(kingdom) {
+                return Some(transition);
+            }
+        }
+        if crate::ui::was_clicked(958.0, 579.0, 126.0, 38.0)
+            || crate::ui::was_clicked(1100.0, 579.0, 126.0, 38.0)
+            || is_key_pressed(KeyCode::Escape)
+        {
             return Some(StateTransition::ToBase);
         }
 
         None
+    }
+
+    fn start_selected_mission(&self, kingdom: &KingdomState) -> Option<StateTransition> {
+        let mission = self.missions.get(self.selected_mission)?;
+        if !self.is_mission_unlocked(mission, kingdom) || self.leader().is_none() {
+            return None;
+        }
+
+        let scaled_mission = mission.scaled_for_kingdom(kingdom);
+        let mission_state =
+            MissionState::from_mission_with_party(scaled_mission, self.party_members.clone());
+        Some(StateTransition::ToMission(mission_state))
     }
 
     pub fn draw(
@@ -132,191 +151,621 @@ impl MissionSelectState {
         kingdom: &KingdomState,
         textures: &std::collections::HashMap<String, Texture2D>,
     ) {
-        draw_text("SELECT MISSION", 20.0, 40.0, 32.0, WHITE);
+        self.draw_background(textures);
+        self.draw_header(kingdom);
+        self.draw_party_panel(textures);
+        self.draw_mission_board(kingdom);
+        self.draw_detail_panel(kingdom);
+        self.draw_shortcuts(kingdom);
+    }
 
-        // Show party members
-        let party_label = if self.party_members.len() == 1 {
-            format!(
-                "Adventurer: {}",
-                self.party_members
-                    .first()
-                    .map(|m| m.name.as_str())
-                    .unwrap_or("?")
-            )
-        } else {
-            format!("Party ({} members):", self.party_members.len())
-        };
-        draw_text(&party_label, 20.0, 75.0, 20.0, SKYBLUE);
+    fn selected_mission(&self) -> Option<&Mission> {
+        self.missions.get(self.selected_mission)
+    }
 
-        // Draw party member portraits and info
-        let portrait_size = 60.0;
-        let portrait_gap = 10.0;
-        let portrait_start_x = 200.0;
+    fn draw_background(&self, textures: &std::collections::HashMap<String, Texture2D>) {
+        clear_background(Color::from_rgba(8, 6, 5, 255));
+        let path = self
+            .selected_mission()
+            .map(|mission| format!("assets/images/regions/{}.png", mission.region_id));
+
+        if let Some(path) = path {
+            if let Some(tex) = textures.get(&path) {
+                draw_texture_ex(
+                    tex,
+                    0.0,
+                    0.0,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(vec2(screen_width(), screen_height())),
+                        ..Default::default()
+                    },
+                );
+            }
+        }
+
+        draw_rectangle(
+            0.0,
+            0.0,
+            screen_width(),
+            screen_height(),
+            Color::from_rgba(5, 4, 4, 202),
+        );
+    }
+
+    fn draw_header(&self, kingdom: &KingdomState) {
+        draw_rectangle(
+            0.0,
+            0.0,
+            screen_width(),
+            HEADER_H,
+            Color::from_rgba(10, 7, 6, 230),
+        );
+        draw_line(0.0, HEADER_H, screen_width(), HEADER_H, 2.0, border_color());
+        draw_text("EMBARK PREPARATION", SIDE_PAD, 42.0, 34.0, title_color());
+        draw_text(
+            &format!(
+                "Day {}     Threat {}     Morale: {}",
+                kingdom.day,
+                kingdom.threat_level,
+                morale_label(kingdom.stats.morale)
+            ),
+            458.0,
+            40.0,
+            18.0,
+            muted_text_color(),
+        );
+        draw_text(
+            "Choose the route. Read the risks. Send them back into the woods.",
+            SIDE_PAD,
+            70.0,
+            16.0,
+            muted_text_color(),
+        );
+    }
+
+    fn draw_party_panel(&self, textures: &std::collections::HashMap<String, Texture2D>) {
+        panel(PARTY_X, PANEL_Y, PARTY_W, PANEL_H, "EXPEDITION PARTY");
+
+        if self.party_members.is_empty() {
+            draw_wrapped_text(
+                "No party selected. Return to the kingdom dashboard and assign adventurers.",
+                PARTY_X + 18.0,
+                PANEL_Y + 54.0,
+                PARTY_W - 36.0,
+                16.0,
+                muted_text_color(),
+            );
+            return;
+        }
 
         for (i, member) in self.party_members.iter().enumerate() {
-            let x = portrait_start_x + (i as f32 * (portrait_size + portrait_gap + 80.0));
-
-            // Portrait
-            if let Some(path) = &member.image_path {
-                if let Some(tex) = textures.get(path) {
-                    draw_texture_ex(
-                        tex,
-                        x,
-                        55.0,
-                        WHITE,
-                        DrawTextureParams {
-                            dest_size: Some(vec2(portrait_size, portrait_size)),
-                            ..Default::default()
-                        },
-                    );
-                }
-            }
-
-            // Leader indicator
-            if i == 0 {
-                draw_text("★", x + portrait_size - 15.0, 68.0, 16.0, YELLOW);
-            }
-
-            // Name and HP below portrait
-            draw_text(&member.name, x + portrait_size + 5.0, 75.0, 14.0, WHITE);
-            draw_text(
-                &format!("HP:{}/{}", member.hp, member.max_hp),
-                x + portrait_size + 5.0,
-                90.0,
-                12.0,
-                GREEN,
-            );
-            draw_text(
-                &format!("Str:{}", member.stress),
-                x + portrait_size + 5.0,
-                104.0,
-                12.0,
-                ORANGE,
-            );
+            let y = PANEL_Y + 48.0 + (i as f32 * 82.0);
+            let leader = if i == 0 { "Leader" } else { "Member" };
+            draw_member_row(member, leader, PARTY_X + 16.0, y, PARTY_W - 32.0, textures);
         }
 
-        let start_y = 120.0;
-        let card_height = 100.0;
-        let card_width = 600.0;
+        let party_risk = party_risk_label(&self.party_members);
+        draw_text(
+            "Party Risk",
+            PARTY_X + 18.0,
+            PANEL_Y + 386.0,
+            17.0,
+            candle_color(),
+        );
+        draw_text(
+            party_risk,
+            PARTY_X + 118.0,
+            PANEL_Y + 386.0,
+            17.0,
+            risk_color(party_risk),
+        );
+        draw_wrapped_text(
+            "High stress and low HP are the signs to treat wounds before departure.",
+            PARTY_X + 18.0,
+            PANEL_Y + 420.0,
+            PARTY_W - 36.0,
+            14.0,
+            muted_text_color(),
+        );
+    }
 
+    fn draw_mission_board(&self, kingdom: &KingdomState) {
+        panel(BOARD_X, PANEL_Y, BOARD_W, PANEL_H, "MISSION BOARD");
         for (i, mission) in self.missions.iter().enumerate() {
-            let y = start_y + (i as f32 * (card_height + 10.0));
-            let is_selected = i == self.selected_mission;
-            let is_unlocked = self.is_mission_unlocked(mission, kingdom);
+            let unlocked = self.is_mission_unlocked(mission, kingdom);
+            draw_mission_card(i, mission, i == self.selected_mission, unlocked, kingdom);
+        }
+    }
 
-            // Card background - different for locked missions
-            let bg_color = if !is_unlocked {
-                Color::from_rgba(30, 30, 35, 255) // Darker for locked
-            } else if is_selected {
-                Color::from_rgba(60, 80, 60, 255)
-            } else {
-                Color::from_rgba(40, 40, 50, 255)
-            };
-            draw_rectangle(20.0, y, card_width, card_height, bg_color);
+    fn draw_detail_panel(&self, kingdom: &KingdomState) {
+        panel(DETAIL_X, PANEL_Y, DETAIL_W, PANEL_H, "BRIEFING");
+        let Some(mission) = self.selected_mission() else {
+            return;
+        };
 
-            // Border
-            if is_selected {
-                let border_color = if is_unlocked { GREEN } else { RED };
-                draw_rectangle_lines(20.0, y, card_width, card_height, 2.0, border_color);
-            }
+        let unlocked = self.is_mission_unlocked(mission, kingdom);
+        let effective = mission.scaled_for_kingdom(kingdom);
 
-            // Lock icon for locked missions
-            if !is_unlocked {
-                draw_text("🔒", card_width - 30.0, y + 30.0, 24.0, RED);
-            }
+        draw_text(
+            &mission.name.to_uppercase(),
+            DETAIL_X + 18.0,
+            PANEL_Y + 48.0,
+            26.0,
+            title_color(),
+        );
+        draw_text(
+            &format!(
+                "{:?} - {}",
+                mission.mission_type,
+                region_label(&mission.region_id)
+            ),
+            DETAIL_X + 18.0,
+            PANEL_Y + 78.0,
+            17.0,
+            mission_type_color(&mission.mission_type),
+        );
+        draw_wrapped_text(
+            &mission.description,
+            DETAIL_X + 18.0,
+            PANEL_Y + 110.0,
+            DETAIL_W - 36.0,
+            16.0,
+            text_color(),
+        );
 
-            // Mission info - dimmed for locked
-            let text_color = if !is_unlocked {
-                Color::from_rgba(100, 100, 100, 255)
-            } else if is_selected {
-                WHITE
-            } else {
-                GRAY
-            };
+        if !unlocked {
             draw_text(
-                &format!("[{}] {}", i + 1, mission.name),
-                30.0,
-                y + 25.0,
-                22.0,
-                text_color,
+                "LOCKED",
+                DETAIL_X + 18.0,
+                PANEL_Y + 174.0,
+                25.0,
+                danger_color(),
             );
-
-            // Description or unlock requirement
-            if !is_unlocked {
-                let req_text = mission.unlock_requirement.description();
-                draw_text(&req_text, 30.0, y + 50.0, 16.0, RED);
-            } else {
-                draw_text(&mission.description, 30.0, y + 50.0, 16.0, GRAY);
-            }
-
-            // Stats (dimmed for locked)
-            let type_color = if !is_unlocked {
-                Color::from_rgba(80, 80, 80, 255)
-            } else {
-                match mission.mission_type {
-                    crate::missions::MissionType::Scout => SKYBLUE,
-                    crate::missions::MissionType::Suppress => RED,
-                    crate::missions::MissionType::Secure => GREEN,
-                    crate::missions::MissionType::Investigate => PURPLE,
-                }
-            };
+            draw_wrapped_text(
+                &locked_instruction(mission),
+                DETAIL_X + 18.0,
+                PANEL_Y + 205.0,
+                DETAIL_W - 36.0,
+                17.0,
+                text_color(),
+            );
+        } else {
             draw_text(
-                &format!("{:?}", mission.mission_type),
-                30.0,
-                y + 75.0,
-                14.0,
-                type_color,
+                "Expected",
+                DETAIL_X + 18.0,
+                PANEL_Y + 174.0,
+                18.0,
+                candle_color(),
             );
-
-            let effective = mission.scaled_for_kingdom(kingdom);
-
-            // Rewards (dimmed for locked)
-            let reward_color = if is_unlocked {
-                YELLOW
-            } else {
-                Color::from_rgba(100, 100, 50, 255)
-            };
             draw_text(
                 &format!(
-                    "Rewards: +{} Gold, +{} Supplies, +{} Knowledge",
+                    "Difficulty {}    Stress Gain {}    Length {}",
+                    effective.difficulty, effective.base_stress, effective.length
+                ),
+                DETAIL_X + 18.0,
+                PANEL_Y + 202.0,
+                17.0,
+                text_color(),
+            );
+            draw_text(
+                "Possible Encounters",
+                DETAIL_X + 18.0,
+                PANEL_Y + 242.0,
+                18.0,
+                candle_color(),
+            );
+            draw_text(
+                encounter_line(&mission.mission_type),
+                DETAIL_X + 18.0,
+                PANEL_Y + 270.0,
+                17.0,
+                muted_text_color(),
+            );
+            draw_text(
+                "Rewards",
+                DETAIL_X + 18.0,
+                PANEL_Y + 316.0,
+                18.0,
+                candle_color(),
+            );
+            draw_text(
+                &format!(
+                    "{} Gold    {} Supplies    {} Knowledge",
                     mission.reward_gold, mission.reward_supplies, mission.reward_knowledge
                 ),
-                200.0,
-                y + 75.0,
-                14.0,
-                reward_color,
+                DETAIL_X + 18.0,
+                PANEL_Y + 344.0,
+                17.0,
+                reward_color(),
             );
-
-            // Difficulty & Stress
-            let info_color = if is_unlocked {
-                ORANGE
-            } else {
-                Color::from_rgba(100, 80, 50, 255)
-            };
             draw_text(
-                &format!(
-                    "Difficulty: {}  |  Stress: {}",
-                    effective.difficulty, effective.base_stress
-                ),
-                450.0,
-                y + 25.0,
-                14.0,
-                info_color,
+                "Warnings",
+                DETAIL_X + 18.0,
+                PANEL_Y + 390.0,
+                18.0,
+                candle_color(),
+            );
+            draw_text(
+                mission_warning(&effective, &self.party_members),
+                DETAIL_X + 112.0,
+                PANEL_Y + 390.0,
+                17.0,
+                warning_color(&effective, &self.party_members),
             );
         }
 
-        // Instructions
-        let selected_locked = self
-            .missions
-            .get(self.selected_mission)
-            .map(|m| !self.is_mission_unlocked(m, kingdom))
-            .unwrap_or(false);
+        draw_action_button(
+            if unlocked { "Embark" } else { "Locked" },
+            DETAIL_X,
+            579.0,
+            142.0,
+            38.0,
+            unlocked,
+        );
+        draw_action_button("Change Party", 958.0, 579.0, 126.0, 38.0, true);
+        draw_action_button("Back", 1100.0, 579.0, 126.0, 38.0, true);
+    }
 
-        let instructions = if selected_locked {
-            "[↑/↓] Select  [LOCKED - Cannot Embark]  [ESC] Cancel"
+    fn draw_shortcuts(&self, kingdom: &KingdomState) {
+        let locked = self
+            .selected_mission()
+            .map(|mission| !self.is_mission_unlocked(mission, kingdom))
+            .unwrap_or(false);
+        let line = if locked {
+            "Shortcuts: Up/Down Select - Locked missions explain requirements - Esc Back"
         } else {
-            "[↑/↓] Select  [ENTER] Embark  [ESC] Cancel"
+            "Shortcuts: Up/Down Select - Enter Embark - Esc Back"
         };
-        draw_text(instructions, 20.0, screen_height() - 40.0, 20.0, GREEN);
+        draw_text(
+            line,
+            SIDE_PAD,
+            screen_height() - 24.0,
+            13.0,
+            muted_text_color(),
+        );
+    }
+}
+
+fn draw_member_row(
+    member: &PartyMemberState,
+    label: &str,
+    x: f32,
+    y: f32,
+    w: f32,
+    textures: &std::collections::HashMap<String, Texture2D>,
+) {
+    draw_rectangle(x, y - 24.0, w, 66.0, Color::from_rgba(19, 17, 16, 205));
+    draw_rectangle_lines(x, y - 24.0, w, 66.0, 1.0, border_color());
+
+    if let Some(path) = &member.image_path {
+        if let Some(tex) = textures.get(path) {
+            draw_texture_ex(
+                tex,
+                x + 8.0,
+                y - 17.0,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(48.0, 48.0)),
+                    ..Default::default()
+                },
+            );
+        }
+    }
+
+    draw_text(&member.name, x + 68.0, y, 18.0, text_color());
+    draw_text(label, x + w - 68.0, y, 13.0, muted_text_color());
+    draw_text(
+        &format!(
+            "HP {}/{}    Stress {}",
+            member.hp, member.max_hp, member.stress
+        ),
+        x + 68.0,
+        y + 24.0,
+        14.0,
+        muted_text_color(),
+    );
+    let risk = member_risk_label(member);
+    draw_text(risk, x + w - 72.0, y + 24.0, 14.0, risk_color(risk));
+}
+
+fn draw_mission_card(
+    i: usize,
+    mission: &Mission,
+    selected: bool,
+    unlocked: bool,
+    kingdom: &KingdomState,
+) {
+    let (x, y, w, h) = mission_card_rect(i);
+    let fill = if selected {
+        Color::from_rgba(82, 57, 30, 232)
+    } else {
+        Color::from_rgba(20, 19, 18, 218)
+    };
+    draw_rectangle(x, y, w, h, fill);
+    draw_rectangle_lines(
+        x,
+        y,
+        w,
+        h,
+        if selected { 2.0 } else { 1.0 },
+        if selected {
+            candle_color()
+        } else {
+            border_color()
+        },
+    );
+
+    draw_text(
+        &format!("[{}] {}", i + 1, mission.name),
+        x + 12.0,
+        y + 24.0,
+        17.0,
+        if unlocked {
+            text_color()
+        } else {
+            muted_text_color()
+        },
+    );
+    draw_text(
+        &format!("{:?}", mission.mission_type),
+        x + 12.0,
+        y + 48.0,
+        14.0,
+        mission_type_color(&mission.mission_type),
+    );
+
+    if unlocked {
+        let effective = mission.scaled_for_kingdom(kingdom);
+        draw_text(
+            &format!(
+                "Risk {} / Stress {}",
+                effective.difficulty, effective.base_stress
+            ),
+            x + 132.0,
+            y + 48.0,
+            14.0,
+            muted_text_color(),
+        );
+        draw_text(
+            &format!("{}g", mission.reward_gold),
+            x + w - 58.0,
+            y + 48.0,
+            14.0,
+            reward_color(),
+        );
+    } else {
+        draw_text("LOCKED", x + w - 76.0, y + 24.0, 15.0, danger_color());
+        draw_text(
+            &mission.unlock_requirement.description(),
+            x + 132.0,
+            y + 48.0,
+            14.0,
+            danger_color(),
+        );
+    }
+}
+
+fn draw_action_button(label: &str, x: f32, y: f32, w: f32, h: f32, enabled: bool) {
+    let hovered = crate::ui::is_mouse_over(x, y, w, h);
+    let fill = if !enabled {
+        Color::from_rgba(31, 27, 25, 218)
+    } else if hovered {
+        Color::from_rgba(111, 75, 32, 245)
+    } else {
+        Color::from_rgba(70, 49, 27, 238)
+    };
+    draw_rectangle(x, y, w, h, fill);
+    draw_rectangle_lines(
+        x,
+        y,
+        w,
+        h,
+        1.0,
+        if enabled {
+            candle_color()
+        } else {
+            border_color()
+        },
+    );
+    let tw = measure_text(label, None, 16, 1.0).width;
+    draw_text(
+        label,
+        x + (w - tw) / 2.0,
+        y + 24.0,
+        16.0,
+        if enabled {
+            text_color()
+        } else {
+            muted_text_color()
+        },
+    );
+}
+
+fn panel(x: f32, y: f32, w: f32, h: f32, title: &str) {
+    draw_rectangle(x, y, w, h, Color::from_rgba(13, 11, 10, 210));
+    draw_rectangle(x, y, w, 32.0, Color::from_rgba(42, 30, 18, 222));
+    draw_rectangle_lines(x, y, w, h, 1.0, border_color());
+    draw_text(title, x + 14.0, y + 22.0, 15.0, candle_color());
+}
+
+fn mission_card_rect(i: usize) -> (f32, f32, f32, f32) {
+    (
+        BOARD_X + 14.0,
+        PANEL_Y + 46.0 + (i as f32 * (CARD_H + CARD_GAP)),
+        BOARD_W - 28.0,
+        CARD_H,
+    )
+}
+
+fn number_key(i: usize) -> KeyCode {
+    match i {
+        0 => KeyCode::Key1,
+        1 => KeyCode::Key2,
+        2 => KeyCode::Key3,
+        3 => KeyCode::Key4,
+        4 => KeyCode::Key5,
+        5 => KeyCode::Key6,
+        6 => KeyCode::Key7,
+        7 => KeyCode::Key8,
+        _ => KeyCode::Key9,
+    }
+}
+
+fn member_risk_label(member: &PartyMemberState) -> &'static str {
+    if member.hp <= member.max_hp / 3 || member.stress >= 75 {
+        "High"
+    } else if member.hp <= member.max_hp / 2 || member.stress >= 45 {
+        "Medium"
+    } else {
+        "Low"
+    }
+}
+
+fn party_risk_label(members: &[PartyMemberState]) -> &'static str {
+    if members
+        .iter()
+        .any(|member| member_risk_label(member) == "High")
+    {
+        "High"
+    } else if members
+        .iter()
+        .any(|member| member_risk_label(member) == "Medium")
+    {
+        "Medium"
+    } else {
+        "Low"
+    }
+}
+
+fn mission_warning(mission: &Mission, members: &[PartyMemberState]) -> &'static str {
+    if members.iter().any(|member| member.hp <= member.max_hp / 3) {
+        "One hero is badly wounded."
+    } else if members.iter().any(|member| member.stress >= 75) {
+        "Resolve collapse likely."
+    } else if mission.base_stress >= 25 {
+        "Stress gain is severe."
+    } else if mission.difficulty >= 3 {
+        "Combat risk is high."
+    } else {
+        "None"
+    }
+}
+
+fn locked_instruction(mission: &Mission) -> String {
+    let req = mission.unlock_requirement.description();
+    if req.contains("watchtowers") {
+        "Requires: Watchtowers. Build Watchtowers to scout beyond the ruined road.".to_string()
+    } else {
+        format!(
+            "{}. Complete this requirement to make the route readable and available.",
+            req
+        )
+    }
+}
+
+fn encounter_line(mission_type: &MissionType) -> &'static str {
+    match mission_type {
+        MissionType::Scout => "Events, unknown paths, occasional beasts",
+        MissionType::Suppress => "Beasts, ambushes, boss encounter",
+        MissionType::Secure => "Combat, events, supply pressure",
+        MissionType::Investigate => "Omens, stress events, unknown threats",
+    }
+}
+
+fn region_label(region_id: &str) -> &'static str {
+    match region_id {
+        "dark_woods" => "Dark Woods",
+        "ruined_outpost" => "Ruined Outpost",
+        "sunken_valley" => "Sunken Valley",
+        _ => "Unknown Region",
+    }
+}
+
+fn morale_label(morale: i32) -> &'static str {
+    if morale >= 70 {
+        "Steady"
+    } else if morale >= 40 {
+        "Fragile"
+    } else {
+        "Shaky"
+    }
+}
+
+fn draw_wrapped_text(text: &str, x: f32, y: f32, max_width: f32, font_size: f32, color: Color) {
+    let mut line = String::new();
+    let mut line_y = y;
+    for word in text.split_whitespace() {
+        let candidate = if line.is_empty() {
+            word.to_string()
+        } else {
+            format!("{} {}", line, word)
+        };
+        if measure_text(&candidate, None, font_size as u16, 1.0).width > max_width
+            && !line.is_empty()
+        {
+            draw_text(&line, x, line_y, font_size, color);
+            line = word.to_string();
+            line_y += font_size + 6.0;
+        } else {
+            line = candidate;
+        }
+    }
+    if !line.is_empty() {
+        draw_text(&line, x, line_y, font_size, color);
+    }
+}
+
+fn text_color() -> Color {
+    Color::from_rgba(230, 221, 205, 255)
+}
+
+fn muted_text_color() -> Color {
+    Color::from_rgba(158, 145, 126, 255)
+}
+
+fn title_color() -> Color {
+    Color::from_rgba(239, 224, 190, 255)
+}
+
+fn candle_color() -> Color {
+    Color::from_rgba(207, 151, 54, 255)
+}
+
+fn reward_color() -> Color {
+    Color::from_rgba(224, 180, 72, 255)
+}
+
+fn danger_color() -> Color {
+    Color::from_rgba(168, 58, 48, 255)
+}
+
+fn border_color() -> Color {
+    Color::from_rgba(105, 76, 43, 210)
+}
+
+fn risk_color(risk: &str) -> Color {
+    match risk {
+        "Low" => Color::from_rgba(130, 177, 101, 255),
+        "Medium" => Color::from_rgba(220, 164, 73, 255),
+        _ => danger_color(),
+    }
+}
+
+fn warning_color(mission: &Mission, members: &[PartyMemberState]) -> Color {
+    let warning = mission_warning(mission, members);
+    if warning == "None" {
+        Color::from_rgba(130, 177, 101, 255)
+    } else {
+        danger_color()
+    }
+}
+
+fn mission_type_color(mission_type: &MissionType) -> Color {
+    match mission_type {
+        MissionType::Scout => Color::from_rgba(118, 151, 164, 255),
+        MissionType::Suppress => Color::from_rgba(171, 75, 58, 255),
+        MissionType::Secure => Color::from_rgba(122, 158, 104, 255),
+        MissionType::Investigate => Color::from_rgba(138, 104, 167, 255),
     }
 }

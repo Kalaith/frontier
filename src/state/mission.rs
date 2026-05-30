@@ -101,11 +101,11 @@ impl MissionState {
     fn get_node_screen_pos(&self, node_id: usize) -> Option<(f32, f32, f32)> {
         let node = self.map_nodes.iter().find(|n| n.id == node_id)?;
 
-        let map_y = 140.0;
-        let node_size = 50.0;
-        let layer_gap = 100.0;
-        let node_gap = 70.0;
-        let start_x = 50.0;
+        let map_y = 180.0;
+        let node_size = 48.0;
+        let layer_gap = 130.0;
+        let node_gap = 78.0;
+        let start_x = 350.0;
 
         let node_x = start_x + (node.layer as f32 * layer_gap);
 
@@ -115,7 +115,7 @@ impl MissionState {
             .filter(|n| n.layer == node.layer)
             .collect();
         let layer_height = (nodes_in_layer.len() as f32 - 1.0) * node_gap;
-        let layer_start_y = map_y + (150.0 - layer_height) / 2.0;
+        let layer_start_y = map_y + (260.0 - layer_height) / 2.0;
         let node_y = layer_start_y + (node.position as f32 * node_gap);
 
         Some((node_x, node_y, node_size))
@@ -314,101 +314,63 @@ impl MissionState {
             );
         }
 
+        draw_rectangle(
+            0.0,
+            0.0,
+            screen_width(),
+            82.0,
+            Color::from_rgba(8, 7, 6, 228),
+        );
+        draw_line(0.0, 82.0, screen_width(), 82.0, 2.0, border_color());
         draw_text(
             &format!("MISSION: {}", self.mission.name),
-            20.0,
-            40.0,
+            24.0,
+            38.0,
             28.0,
-            WHITE,
+            title_color(),
         );
         draw_text(
             &format!("{:?} Mission", self.mission.mission_type),
-            20.0,
-            70.0,
+            24.0,
+            66.0,
             18.0,
-            GRAY,
+            muted_text_color(),
         );
 
-        // Show party members
-        let party_label = if self.party_members.len() == 1 {
-            format!(
-                "Adventurer: {}",
-                self.leader().map(|m| m.name.as_str()).unwrap_or("?")
-            )
-        } else {
-            format!("Party ({}):", self.party_members.len())
-        };
-        draw_text(&party_label, 20.0, 95.0, 20.0, SKYBLUE);
-
-        // Draw party member portraits in a row
-        let portrait_size = 60.0;
-        let portrait_start_x = 650.0;
-
-        for (i, member) in self.party_members.iter().enumerate() {
-            let x = portrait_start_x + (i as f32 * (portrait_size + 5.0));
-
-            // Portrait
-            if let Some(path) = &member.image_path {
-                if let Some(tex) = textures.get(path) {
-                    let tint = if member.hp < member.max_hp / 3 {
-                        Color::from_rgba(255, 100, 100, 255)
-                    } else {
-                        WHITE
-                    };
-                    draw_texture_ex(
-                        tex,
-                        x,
-                        30.0,
-                        tint,
-                        DrawTextureParams {
-                            dest_size: Some(vec2(portrait_size, portrait_size)),
-                            ..Default::default()
-                        },
-                    );
-                }
-            }
-
-            // HP bar under portrait
-            let hp_pct = member.hp as f32 / member.max_hp as f32;
-            draw_rectangle(x, 95.0, portrait_size, 6.0, DARKGRAY);
-            draw_rectangle(x, 95.0, portrait_size * hp_pct, 6.0, GREEN);
-
-            // Leader star
-            if i == 0 {
-                draw_text("★", x + portrait_size - 12.0, 42.0, 14.0, YELLOW);
-            }
-        }
-
+        draw_party_panel(&self.party_members, textures);
+        draw_legend_panel();
+        draw_route_panel();
         // Draw branching map
         self.draw_branching_map();
+        draw_current_node_panel(self.current_node(), self.available_paths.is_empty());
 
         // Instructions
         if self.available_paths.is_empty() {
             draw_text(
-                "[SPACE] Advance  [ESC] Retreat",
-                20.0,
-                screen_height() - 40.0,
-                20.0,
-                GREEN,
+                "Actions: [Space] Advance   [Esc] Retreat",
+                24.0,
+                screen_height() - 24.0,
+                16.0,
+                ready_color(),
             );
         } else {
             draw_text(
-                "[←/→ or 1-3] Choose Path  [SPACE] Confirm  [ESC] Retreat",
-                20.0,
-                screen_height() - 40.0,
-                20.0,
-                YELLOW,
+                "Actions: [Left/Right or 1-3] Choose Path   [Space] Confirm   [Esc] Retreat",
+                24.0,
+                screen_height() - 24.0,
+                16.0,
+                candle_color(),
             );
         }
     }
 
     /// Draw the branching map visualization
     fn draw_branching_map(&self) {
-        let map_y = 140.0;
-        let node_size = 50.0;
-        let layer_gap = 100.0;
-        let node_gap = 70.0;
-        let start_x = 50.0;
+        let map_y = 180.0;
+        let node_size = 48.0;
+        let layer_gap = 130.0;
+        let node_gap = 78.0;
+        let start_x = 350.0;
 
         // Group nodes by layer
         let max_layer = self.map_nodes.iter().map(|n| n.layer).max().unwrap_or(0);
@@ -424,7 +386,7 @@ impl MissionState {
                 .filter(|n| n.layer == node.layer)
                 .collect();
             let layer_height = (nodes_in_layer.len() as f32 - 1.0) * node_gap;
-            let layer_start_y = map_y + (150.0 - layer_height) / 2.0;
+            let layer_start_y = map_y + (260.0 - layer_height) / 2.0;
             let node_y = layer_start_y + (node.position as f32 * node_gap);
 
             // Draw connections to next nodes
@@ -437,22 +399,22 @@ impl MissionState {
                         .filter(|n| n.layer == target.layer)
                         .collect();
                     let target_layer_height = (target_nodes_in_layer.len() as f32 - 1.0) * node_gap;
-                    let target_layer_start_y = map_y + (150.0 - target_layer_height) / 2.0;
+                    let target_layer_start_y = map_y + (260.0 - target_layer_height) / 2.0;
                     let target_y = target_layer_start_y + (target.position as f32 * node_gap);
 
                     // Line color based on whether this is a selectable path
                     let line_color = if self.available_paths.contains(&target_id) {
                         if self.available_paths.get(self.selected_path) == Some(&target_id) {
-                            YELLOW
+                            candle_color()
                         } else {
-                            Color::from_rgba(100, 150, 100, 255)
+                            Color::from_rgba(104, 137, 90, 255)
                         }
                     } else if self.visited_nodes.contains(&target_id)
                         || self.visited_nodes.contains(&node.id)
                     {
-                        GREEN
+                        ready_color()
                     } else {
-                        DARKGRAY
+                        Color::from_rgba(66, 60, 54, 255)
                     };
 
                     draw_line(
@@ -477,23 +439,23 @@ impl MissionState {
                 .filter(|n| n.layer == node.layer)
                 .collect();
             let layer_height = (nodes_in_layer.len() as f32 - 1.0) * node_gap;
-            let layer_start_y = map_y + (150.0 - layer_height) / 2.0;
+            let layer_start_y = map_y + (260.0 - layer_height) / 2.0;
             let node_y = layer_start_y + (node.position as f32 * node_gap);
 
             // Node color
             let (bg_color, border_color) = if node.id == self.current_node_id {
-                (YELLOW, WHITE)
+                (Color::from_rgba(155, 106, 36, 255), title_color())
             } else if self.available_paths.contains(&node.id) {
                 let is_selected = self.available_paths.get(self.selected_path) == Some(&node.id);
                 if is_selected {
-                    (Color::from_rgba(100, 200, 100, 255), YELLOW)
+                    (Color::from_rgba(91, 126, 75, 255), candle_color())
                 } else {
-                    (Color::from_rgba(80, 120, 80, 255), GREEN)
+                    (Color::from_rgba(50, 74, 52, 255), ready_color())
                 }
             } else if self.visited_nodes.contains(&node.id) {
-                (GREEN, WHITE)
+                (Color::from_rgba(88, 114, 71, 255), title_color())
             } else {
-                (DARKGRAY, GRAY)
+                (Color::from_rgba(35, 33, 31, 255), muted_text_color())
             };
 
             draw_rectangle(node_x, node_y, node_size, node_size, bg_color);
@@ -501,18 +463,18 @@ impl MissionState {
 
             // Node icon
             let (icon, icon_color) = match &node.node_type {
-                NodeType::Combat => ("X", RED),
-                NodeType::Boss => ("!", PURPLE),
-                NodeType::Event => ("?", SKYBLUE),
-                NodeType::Rest => ("+", GREEN),
+                NodeType::Combat => ("X", danger_color()),
+                NodeType::Boss => ("!", mystery_color()),
+                NodeType::Event => ("?", info_color()),
+                NodeType::Rest => ("+", ready_color()),
             };
             let text_color =
                 if self.visited_nodes.contains(&node.id) || node.id == self.current_node_id {
-                    BLACK
+                    Color::from_rgba(12, 10, 8, 255)
                 } else {
                     icon_color
                 };
-            draw_text(icon, node_x + 18.0, node_y + 35.0, 28.0, text_color);
+            draw_text(icon, node_x + 17.0, node_y + 34.0, 26.0, text_color);
 
             // Show selection number if path choice
             if let Some(idx) = self.available_paths.iter().position(|&id| id == node.id) {
@@ -521,7 +483,7 @@ impl MissionState {
                     node_x + 15.0,
                     node_y - 5.0,
                     16.0,
-                    YELLOW,
+                    candle_color(),
                 );
             }
         }
@@ -529,6 +491,147 @@ impl MissionState {
         // Progress indicator
         let current_layer = self.current_node().map(|n| n.layer).unwrap_or(0);
         let progress = format!("Layer {}/{}", current_layer + 1, max_layer + 1);
-        draw_text(&progress, 20.0, 130.0, 20.0, YELLOW);
+        draw_text(&progress, 350.0, 147.0, 18.0, candle_color());
     }
+}
+
+fn draw_party_panel(
+    party_members: &[PartyMemberState],
+    textures: &std::collections::HashMap<String, Texture2D>,
+) {
+    panel(24.0, 104.0, 284.0, 244.0, "EXPEDITION PARTY");
+    if party_members.is_empty() {
+        draw_text("No party assigned.", 42.0, 156.0, 17.0, muted_text_color());
+        return;
+    }
+
+    for (i, member) in party_members.iter().enumerate().take(4) {
+        let y = 152.0 + (i as f32 * 48.0);
+        if let Some(path) = &member.image_path {
+            if let Some(tex) = textures.get(path) {
+                draw_texture_ex(
+                    tex,
+                    42.0,
+                    y - 30.0,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(vec2(38.0, 38.0)),
+                        ..Default::default()
+                    },
+                );
+            }
+        }
+        draw_text(&member.name, 92.0, y - 9.0, 16.0, text_color());
+        draw_text(
+            &format!(
+                "HP {}/{}    Stress {}",
+                member.hp, member.max_hp, member.stress
+            ),
+            92.0,
+            y + 12.0,
+            13.0,
+            muted_text_color(),
+        );
+    }
+}
+
+fn draw_legend_panel() {
+    panel(24.0, 366.0, 284.0, 132.0, "NODE LEGEND");
+    let rows = [
+        ("?", "Event / unknown", info_color()),
+        ("X", "Combat", danger_color()),
+        ("+", "Rest", ready_color()),
+        ("!", "Boss / critical threat", mystery_color()),
+    ];
+    for (i, (icon, label, color)) in rows.iter().enumerate() {
+        let y = 410.0 + (i as f32 * 23.0);
+        draw_text(icon, 46.0, y, 18.0, *color);
+        draw_text(label, 76.0, y, 15.0, muted_text_color());
+    }
+}
+
+fn draw_route_panel() {
+    panel(328.0, 104.0, 896.0, 456.0, "EXPEDITION ROUTE");
+    draw_text(
+        "Read the route before committing. Branches become decisions when the trail forks.",
+        350.0,
+        536.0,
+        15.0,
+        muted_text_color(),
+    );
+}
+
+fn draw_current_node_panel(node: Option<&MapNode>, can_advance: bool) {
+    panel(24.0, 516.0, 284.0, 104.0, "CURRENT REPORT");
+    let Some(node) = node else {
+        draw_text(
+            "Route data unavailable.",
+            42.0,
+            568.0,
+            16.0,
+            muted_text_color(),
+        );
+        return;
+    };
+    let label = match node.node_type {
+        NodeType::Combat => "Combat contact ahead",
+        NodeType::Event => "Uncertain trail marker",
+        NodeType::Rest => "Rest point",
+        NodeType::Boss => "Command warning: boss",
+    };
+    draw_text(label, 42.0, 566.0, 17.0, text_color());
+    draw_text(
+        if can_advance {
+            "Advance to reveal the report."
+        } else {
+            "Choose the next route."
+        },
+        42.0,
+        594.0,
+        14.0,
+        muted_text_color(),
+    );
+}
+
+fn panel(x: f32, y: f32, w: f32, h: f32, title: &str) {
+    draw_rectangle(x, y, w, h, Color::from_rgba(13, 11, 10, 210));
+    draw_rectangle(x, y, w, 32.0, Color::from_rgba(42, 30, 18, 222));
+    draw_rectangle_lines(x, y, w, h, 1.0, border_color());
+    draw_text(title, x + 14.0, y + 22.0, 15.0, candle_color());
+}
+
+fn text_color() -> Color {
+    Color::from_rgba(230, 221, 205, 255)
+}
+
+fn muted_text_color() -> Color {
+    Color::from_rgba(158, 145, 126, 255)
+}
+
+fn title_color() -> Color {
+    Color::from_rgba(239, 224, 190, 255)
+}
+
+fn candle_color() -> Color {
+    Color::from_rgba(207, 151, 54, 255)
+}
+
+fn ready_color() -> Color {
+    Color::from_rgba(130, 177, 101, 255)
+}
+
+fn danger_color() -> Color {
+    Color::from_rgba(168, 58, 48, 255)
+}
+
+fn info_color() -> Color {
+    Color::from_rgba(118, 151, 164, 255)
+}
+
+fn mystery_color() -> Color {
+    Color::from_rgba(138, 104, 167, 255)
+}
+
+fn border_color() -> Color {
+    Color::from_rgba(105, 76, 43, 210)
 }

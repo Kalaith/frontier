@@ -131,6 +131,15 @@ impl Game {
             }
         }
 
+        // UI backdrops
+        let ui_images = ["command_table"];
+        for name in ui_images {
+            let path = format!("assets/images/ui/{}.png", name);
+            if let Some(tex) = load_tex(&path).await {
+                textures.insert(path, tex);
+            }
+        }
+
         Self {
             state: GameState::default(),
             kingdom,

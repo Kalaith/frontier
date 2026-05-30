@@ -9,6 +9,7 @@ pub use macroquad_toolkit::input::{is_mouse_over, was_clicked};
 /// Draw a button and return true if clicked
 ///
 /// Note: Frontier uses a different parameter order (text first) than other games
+#[allow(dead_code)]
 pub fn button(text: &str, x: f32, y: f32, w: f32, h: f32) -> bool {
     // Frontier uses a specific style
     let style = macroquad_toolkit::ui::ButtonStyle {
@@ -32,6 +33,7 @@ pub fn button_colored(text: &str, x: f32, y: f32, w: f32, h: f32, base_color: Co
 }
 
 /// Show a compact tooltip when the mouse is over a keyword label.
+#[allow(dead_code)]
 pub fn keyword_tooltip(keyword: &str, x: f32, y: f32, w: f32, h: f32) {
     if is_mouse_over(x, y, w, h) {
         if let Some(definition) = keyword_definition(keyword) {
