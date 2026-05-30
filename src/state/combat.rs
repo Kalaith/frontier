@@ -25,6 +25,8 @@ pub struct CombatState {
     /// Track damage/stress per player for applying after combat
     pub damage_taken: Vec<i32>,
     pub stress_gained: Vec<i32>,
+    /// Short-lived UI feedback for clicks and keyboard actions
+    pub feedback: Option<(String, f32)>,
 }
 
 /// Context needed to return to a mission after combat
@@ -62,6 +64,7 @@ impl Default for CombatState {
             return_mission: None,
             damage_taken: vec![0],
             stress_gained: vec![0],
+            feedback: None,
         }
     }
 }
@@ -143,6 +146,8 @@ impl CombatState {
     }
 
     pub fn update(&mut self) -> Option<StateTransition> {
+        self.tick_feedback();
+
         // Card selection with number keys OR mouse click
         for i in 0..self.hand.len().min(5) {
             let key = match i {
@@ -156,17 +161,17 @@ impl CombatState {
 
             // Keyboard selection
             if is_key_pressed(key) {
-                self.selected_card = Some(i);
+                self.select_card(i);
             }
 
             // Mouse click on card
             let (card_x, card_y, card_width, card_height) = combat_card_rect(i, self.hand.len());
-            if crate::ui::was_clicked(card_x, card_y, card_width, card_height) {
+            if was_pressed(card_x, card_y, card_width, card_height) {
                 if self.selected_card == Some(i) {
                     // Clicking already selected card = play it
                     self.try_play_selected_card();
                 } else {
-                    self.selected_card = Some(i);
+                    self.select_card(i);
                 }
             }
         }
@@ -183,7 +188,7 @@ impl CombatState {
         // End Turn button bounds
         let end_btn_x = screen_width() - 168.0;
         let end_btn_y = screen_height() - 58.0;
-        if crate::ui::was_clicked(end_btn_x, end_btn_y, 144.0, 38.0) {
+        if was_pressed(end_btn_x, end_btn_y, 144.0, 38.0) {
             self.end_turn();
         }
 
@@ -252,37 +257,79 @@ impl CombatState {
 
     /// Try to play the currently selected card
     fn try_play_selected_card(&mut self) {
-        if let Some(card_idx) = self.selected_card {
-            if card_idx < self.hand.len() && self.current_player_idx < self.players.len() {
-                let card = self.hand[card_idx].clone();
+        let Some(card_idx) = self.selected_card else {
+            self.set_feedback("Select a card first.".to_string());
+            return;
+        };
+        if card_idx >= self.hand.len() || self.current_player_idx >= self.players.len() {
+            self.selected_card = None;
+            self.set_feedback("That card is no longer available.".to_string());
+            return;
+        }
 
-                // Check if card can be played
-                let effective_cost = self.effective_card_cost(&card);
-                let can_afford = effective_cost <= self.energy;
-                let attack_blocked = card.is_attack() && self.resolver.turn_mods.attacks_disabled;
+        let card = self.hand[card_idx].clone();
+        let effective_cost = self.effective_card_cost(&card);
+        let can_afford = effective_cost <= self.energy;
+        let attack_blocked = card.is_attack() && self.resolver.turn_mods.attacks_disabled;
 
-                if can_afford && !attack_blocked {
-                    if self.fearful_fumble(&card) {
-                        self.selected_card = None;
-                        return;
-                    }
+        if !can_afford {
+            self.set_feedback(format!(
+                "{} needs {} energy. You have {}.",
+                card.name, effective_cost, self.energy
+            ));
+            return;
+        }
+        if attack_blocked {
+            self.set_feedback(format!("{} is blocked this turn.", card.name));
+            return;
+        }
 
-                    // Resolve card effects
-                    let effects = card.effects.clone();
-                    self.energy -= effective_cost;
+        if self.fearful_fumble(&card) {
+            self.selected_card = None;
+            self.set_feedback(format!("{} fumbled.", card.name));
+            return;
+        }
 
-                    // Get active player reference
-                    let player = &mut self.players[self.current_player_idx];
-                    for effect in effects {
-                        self.resolver.resolve(&effect, player, &mut self.enemy);
-                    }
+        let player_name = self.players[self.current_player_idx].name.clone();
+        let card_name = card.name.clone();
+        let effects = card.effects.clone();
+        self.energy -= effective_cost;
+        self.resolver
+            .log
+            .push(format!("{} plays {}", player_name, card_name));
 
-                    self.apply_card_turn_modifiers();
-                    self.hand.remove(card_idx);
-                    self.selected_card = None;
-                }
+        let player = &mut self.players[self.current_player_idx];
+        for effect in effects {
+            self.resolver.resolve(&effect, player, &mut self.enemy);
+        }
+
+        self.apply_card_turn_modifiers();
+        self.hand.remove(card_idx);
+        self.selected_card = None;
+        self.set_feedback(format!("{} played.", card_name));
+    }
+
+    fn select_card(&mut self, idx: usize) {
+        if let Some(card) = self.hand.get(idx) {
+            self.selected_card = Some(idx);
+            self.set_feedback(format!(
+                "{} selected. Click again or press Enter to play.",
+                card.name
+            ));
+        }
+    }
+
+    fn tick_feedback(&mut self) {
+        if let Some((_, time)) = &mut self.feedback {
+            *time -= get_frame_time();
+            if *time <= 0.0 {
+                self.feedback = None;
             }
         }
+    }
+
+    fn set_feedback(&mut self, text: String) {
+        self.feedback = Some((text, 2.0));
     }
 
     fn effective_card_cost(&self, card: &Card) -> i32 {
@@ -397,6 +444,13 @@ impl CombatState {
     }
 
     fn end_turn(&mut self) {
+        let actor_name = self
+            .players
+            .get(self.current_player_idx)
+            .map(|player| player.name.clone())
+            .unwrap_or_else(|| "Adventurer".to_string());
+        let old_intent = self.enemy.intent.description();
+
         // Current player status tick and block reset
         if let Some(player) = self.players.get_mut(self.current_player_idx) {
             player.tick_statuses();
@@ -408,9 +462,11 @@ impl CombatState {
         let enemy_acted = dmg > 0 || stress > 0;
 
         // Apply damage to current player
+        let mut actual_damage = 0;
         if dmg > 0 {
             if let Some(player) = self.players.get_mut(self.current_player_idx) {
                 let actual = player.take_damage(dmg);
+                actual_damage = actual;
                 if self.current_player_idx < self.damage_taken.len() {
                     self.damage_taken[self.current_player_idx] += actual;
                 }
@@ -456,6 +512,17 @@ impl CombatState {
 
         // Roll new enemy intent for next turn
         self.enemy.roll_intent(self.turn);
+
+        self.resolver.log.push(format!(
+            "End turn: {} resolved. {} took {} damage and {} stress.",
+            old_intent, actor_name, actual_damage, base_stress
+        ));
+        self.resolver.log.push(format!(
+            "Turn {} begins. Enemy intent: {}.",
+            self.turn,
+            self.enemy.intent.description()
+        ));
+        self.set_feedback(format!("Turn {} begins.", self.turn));
     }
 
     pub fn draw(&self, textures: &std::collections::HashMap<String, Texture2D>) {
@@ -500,6 +567,7 @@ impl CombatState {
 
         let preview_idx = hovered_card_index(&self.hand).or(self.selected_card);
         draw_report_panel(self, preview_idx);
+        draw_feedback_panel(self.feedback.as_ref());
 
         let mut hovered_card_idx: Option<usize> = None;
         for (i, card) in self.hand.iter().enumerate() {
