@@ -3,7 +3,6 @@
 mod adventurer;
 mod buildings;
 mod party;
-mod progression;
 mod roster;
 mod stats;
 mod unlock;

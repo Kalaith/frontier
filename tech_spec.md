@@ -69,23 +69,28 @@ src/
 ├─ state/
 │ ├─ mod.rs
 │ ├─ base.rs // Kingdom/base state
+│ ├─ mission_select.rs // Mission selection and embark flow
 │ ├─ mission.rs // Mission map & flow
+│ ├─ event.rs // Narrative mission events
 │ ├─ combat.rs // Combat state
+│ ├─ recruit.rs // Recruitment state
 │ └─ results.rs // Post-mission resolution
 │
 ├─ combat/
 │ ├─ mod.rs
 │ ├─ unit.rs
-│ ├─ enemy.rs
 │ ├─ card.rs
 │ ├─ effects.rs
 │ └─ resolver.rs
 │
 ├─ kingdom/
 │ ├─ mod.rs
+│ ├─ adventurer.rs
+│ ├─ party.rs
+│ ├─ roster.rs
 │ ├─ stats.rs
 │ ├─ buildings.rs
-│ └─ progression.rs
+│ └─ unlock.rs
 │
 ├─ missions/
 │ ├─ mod.rs
@@ -94,20 +99,23 @@ src/
 │ └─ events.rs
 │
 ├─ ui/
-│ ├─ mod.rs
-│ ├─ base_ui.rs
-│ ├─ combat_ui.rs
-│ └─ mission_ui.rs
+│ └─ mod.rs
 │
 ├─ data/
-│ ├─ cards.json
-│ ├─ enemies.json
-│ ├─ regions.json
-│ └─ missions.json
+│ ├─ mod.rs
+│ ├─ cards.rs
+│ └─ enemies.rs
 │
 └─ save/
-├─ mod.rs
-└─ save_data.rs
+  └─ mod.rs
+
+assets/
+├─ cards.json
+├─ enemies.json
+├─ missions.json
+├─ regions.json
+├─ *_prompts.json
+└─ images/
 
 yaml
 Copy code
@@ -121,10 +129,12 @@ Copy code
 ```rust
 enum GameState {
     Base(BaseState),
-    MissionSelect,
+    MissionSelect(MissionSelectState),
     Mission(MissionState),
     Combat(CombatState),
     Results(ResultState),
+    Event(EventState),
+    Recruit(RecruitState),
 }
 Only one active state at a time
 
