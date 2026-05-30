@@ -121,6 +121,9 @@ impl BaseState {
         if let Some(transition) = self.update_action_buttons(kingdom, roster) {
             return Some(transition);
         }
+        if self.update_detail_buttons() {
+            return None;
+        }
         self.update_selection(kingdom, roster);
         self.update_shortcuts(kingdom, roster)
     }
@@ -129,7 +132,7 @@ impl BaseState {
         for i in 0..roster.adventurers.len().min(9) {
             let key = number_key(i);
             let y = MAIN_Y + 42.0 + (i as f32 * 40.0);
-            let clicked = crate::ui::was_clicked(285.0, y - 24.0, 470.0, 34.0);
+            let clicked = crate::ui::was_clicked(44.0, y - 24.0, 720.0, 34.0);
 
             if key.is_some_and(is_key_pressed) || clicked {
                 if let Some(adv) = roster.adventurers.get(i) {
@@ -142,6 +145,23 @@ impl BaseState {
                     }
                 }
             }
+        }
+
+        let (mission_x, mission_y, mission_w, mission_h) = party_mission_button_rect();
+        if crate::ui::was_clicked(mission_x, mission_y, mission_w, mission_h)
+            && !self.forming_party.is_empty()
+        {
+            return Some(StateTransition::ToMissionSelect(
+                MissionSelectState::for_party(self.forming_party.clone(), roster),
+            ));
+        }
+
+        let (back_x, back_y, back_w, back_h) = party_back_button_rect();
+        if crate::ui::was_clicked(back_x, back_y, back_w, back_h) {
+            self.forming_party = Party::default();
+            self.focus = FocusArea::Roster;
+            self.active_tab = BaseTab::Roster;
+            return None;
         }
 
         if is_key_pressed(KeyCode::Enter) && !self.forming_party.is_empty() {
@@ -211,6 +231,22 @@ impl BaseState {
         None
     }
 
+    fn update_detail_buttons(&mut self) -> bool {
+        if self.selected_adventurer.is_none() && self.selected_building.is_none() {
+            return false;
+        }
+
+        let (x, y, w, h) = detail_back_button_rect();
+        if crate::ui::was_clicked(x, y, w, h) {
+            self.selected_adventurer = None;
+            self.selected_building = None;
+            self.viewing_deck = false;
+            return true;
+        }
+
+        false
+    }
+
     fn update_selection(&mut self, kingdom: &mut KingdomState, roster: &mut Roster) {
         match self.active_tab {
             BaseTab::Buildings => {
@@ -236,10 +272,11 @@ impl BaseState {
                 let count = roster.adventurers.len().min(9);
                 for i in 0..count {
                     let key = number_key(i);
-                    let (x, y, w, h) = adventurer_row_rect(i);
-                    if key.is_some_and(is_key_pressed) || crate::ui::was_clicked(x, y, w, h) {
-                        if self.selected_adventurer == Some(i) && crate::ui::was_clicked(x, y, w, h)
-                        {
+                    let (x, y, w, h) = adventurer_row_hit_rect(self.active_tab, i);
+                    let clicked = matches!(self.active_tab, BaseTab::Kingdom | BaseTab::Roster)
+                        && crate::ui::was_clicked(x, y, w, h);
+                    if key.is_some_and(is_key_pressed) || clicked {
+                        if self.selected_adventurer == Some(i) && clicked {
                             self.start_party_from_selected(roster);
                         } else {
                             self.selected_adventurer = Some(i);
@@ -678,6 +715,18 @@ impl BaseState {
             18.0,
             muted_text_color(),
         );
+
+        let (mission_x, mission_y, mission_w, mission_h) = party_mission_button_rect();
+        draw_action_button(
+            "Open Mission Board",
+            mission_x,
+            mission_y,
+            mission_w,
+            mission_h,
+            !self.forming_party.is_empty(),
+        );
+        let (back_x, back_y, back_w, back_h) = party_back_button_rect();
+        draw_action_button("Back to Roster", back_x, back_y, back_w, back_h, true);
     }
 
     fn draw_action_bar(&self, kingdom: &KingdomState, roster: &Roster) {
@@ -704,6 +753,10 @@ impl BaseState {
             h,
             "DETAILS",
         );
+        if self.selected_adventurer.is_some() || self.selected_building.is_some() {
+            let (x, y, w, h) = detail_back_button_rect();
+            draw_action_button("Back", x, y, w, h, true);
+        }
 
         match self.active_tab {
             BaseTab::Buildings => {
@@ -1017,12 +1070,13 @@ fn draw_readiness_summary(kingdom: &KingdomState, roster: &Roster, x: f32, y: f3
 
 fn draw_adventurer_row(i: usize, adv: &Adventurer, selected: bool, x: f32, start_y: f32) {
     let y = start_y + (i as f32 * 34.0);
-    let (row_x, row_y, row_w, row_h) = adventurer_row_rect(i);
-    let bg_x = if x < 100.0 { row_x } else { x - 10.0 };
-    let bg_w = if x < 100.0 { row_w } else { 470.0 };
+    let bg_x = x - 10.0;
+    let bg_y = y - 22.0;
+    let bg_w = if x < 100.0 { 690.0 } else { 470.0 };
+    let row_h = 30.0;
     draw_rectangle(
         bg_x,
-        row_y,
+        bg_y,
         bg_w,
         row_h,
         if selected {
@@ -1032,7 +1086,7 @@ fn draw_adventurer_row(i: usize, adv: &Adventurer, selected: bool, x: f32, start
         },
     );
     if selected {
-        draw_rectangle_lines(bg_x, row_y, bg_w, row_h, 2.0, candle_color());
+        draw_rectangle_lines(bg_x, bg_y, bg_w, row_h, 2.0, candle_color());
     }
     draw_text(
         &format!("[{}] {}", i + 1, adv.name),
@@ -1515,6 +1569,30 @@ fn action_enabled(
 
 fn adventurer_row_rect(i: usize) -> (f32, f32, f32, f32) {
     (285.0, MAIN_Y + 50.0 + (i as f32 * 34.0) - 22.0, 470.0, 30.0)
+}
+
+fn roster_adventurer_row_rect(i: usize) -> (f32, f32, f32, f32) {
+    (34.0, MAIN_Y + 52.0 + (i as f32 * 34.0) - 22.0, 690.0, 30.0)
+}
+
+fn adventurer_row_hit_rect(active_tab: BaseTab, i: usize) -> (f32, f32, f32, f32) {
+    if active_tab == BaseTab::Roster {
+        roster_adventurer_row_rect(i)
+    } else {
+        adventurer_row_rect(i)
+    }
+}
+
+fn detail_back_button_rect() -> (f32, f32, f32, f32) {
+    (screen_width() - 168.0, DETAIL_Y + 4.0, 126.0, 30.0)
+}
+
+fn party_mission_button_rect() -> (f32, f32, f32, f32) {
+    (48.0, MAIN_Y + 420.0, 190.0, 34.0)
+}
+
+fn party_back_button_rect() -> (f32, f32, f32, f32) {
+    (254.0, MAIN_Y + 420.0, 150.0, 34.0)
 }
 
 fn facility_card_rect(i: usize) -> (f32, f32, f32, f32) {
