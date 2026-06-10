@@ -6,7 +6,10 @@ use crate::kingdom::{KingdomState, Roster};
 use crate::save::{ensure_save_directory, SaveData};
 use crate::state::*;
 use macroquad::prelude::*;
+use macroquad_toolkit::assets::{load_texture_from_pack_or_file, AssetPack};
 use std::collections::HashMap;
+
+const ASSET_PACK_PATH: &str = "assets.zip";
 
 /// Top-level game state enum - explicit state machine
 pub enum GameState {
@@ -60,12 +63,16 @@ impl Game {
         };
         kingdom.ensure_current_buildings();
 
+        let asset_pack = AssetPack::load(ASSET_PACK_PATH).await.ok();
+
         // Load textures
         let mut textures = HashMap::new();
 
         // Helper to load texture if file exists
-        async fn load_tex(path: &str) -> Option<Texture2D> {
-            load_texture(path).await.ok()
+        async fn load_tex(asset_pack: Option<&AssetPack>, path: &str) -> Option<Texture2D> {
+            load_texture_from_pack_or_file(asset_pack, path, FilterMode::Linear)
+                .await
+                .ok()
         }
 
         // Helper to parse textures from JSON string
@@ -73,11 +80,12 @@ impl Game {
             json_str: &str,
             field_name: &str,
             textures: &mut HashMap<String, Texture2D>,
+            asset_pack: Option<&AssetPack>,
         ) {
             if let Ok(items) = serde_json::from_str::<Vec<serde_json::Value>>(json_str) {
                 for item in items {
                     if let Some(path) = item.get(field_name).and_then(|v| v.as_str()) {
-                        if let Some(tex) = load_texture(path).await.ok() {
+                        if let Some(tex) = load_tex(asset_pack, path).await {
                             textures.insert(path.to_string(), tex);
                         }
                     }
@@ -96,7 +104,7 @@ impl Game {
                     Err(_) => include_str!(concat!("../", $path)).to_string(),
                 };
 
-                parse_textures_from_json(&content, $field, $textures).await;
+                parse_textures_from_json(&content, $field, $textures, asset_pack.as_ref()).await;
             }};
         }
 
@@ -117,7 +125,7 @@ impl Game {
         ];
         for name in char_images {
             let path = format!("assets/images/characters/{}.png", name);
-            if let Some(tex) = load_tex(&path).await {
+            if let Some(tex) = load_tex(asset_pack.as_ref(), &path).await {
                 textures.insert(path, tex);
             }
         }
@@ -126,7 +134,7 @@ impl Game {
         let region_images = ["dark_woods", "ruined_outpost", "sunken_valley"];
         for name in region_images {
             let path = format!("assets/images/regions/{}.png", name);
-            if let Some(tex) = load_tex(&path).await {
+            if let Some(tex) = load_tex(asset_pack.as_ref(), &path).await {
                 textures.insert(path, tex);
             }
         }
@@ -135,7 +143,7 @@ impl Game {
         let ui_images = ["command_table"];
         for name in ui_images {
             let path = format!("assets/images/ui/{}.png", name);
-            if let Some(tex) = load_tex(&path).await {
+            if let Some(tex) = load_tex(asset_pack.as_ref(), &path).await {
                 textures.insert(path, tex);
             }
         }
