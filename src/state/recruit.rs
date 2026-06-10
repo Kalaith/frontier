@@ -3,6 +3,7 @@
 use super::StateTransition;
 use crate::kingdom::{Adventurer, AdventurerClass, KingdomState, Roster};
 use macroquad::prelude::*;
+use macroquad_toolkit::rng;
 use std::collections::HashMap;
 
 /// Names for random adventurers
@@ -21,8 +22,8 @@ pub struct Recruit {
 
 impl Recruit {
     pub fn random(class: AdventurerClass) -> Self {
-        let name = FIRST_NAMES[rand::gen_range(0, FIRST_NAMES.len())];
-        let gender = if rand::gen_range(0, 2) == 0 {
+        let name = FIRST_NAMES[rng::gen_range(0, FIRST_NAMES.len())];
+        let gender = if rng::gen_range(0, 2) == 0 {
             crate::kingdom::Gender::Male
         } else {
             crate::kingdom::Gender::Female
