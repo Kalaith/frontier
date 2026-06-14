@@ -6,6 +6,7 @@ use crate::data::random_enemy_for_region_and_difficulty;
 use crate::kingdom::{PartyMemberState, ResolveState, TraumaType};
 use crate::missions::{MapNode, Mission};
 use macroquad::prelude::*;
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
 /// Turn-based combat state with party support
 pub struct CombatState {
@@ -595,7 +596,7 @@ impl CombatState {
         let end_btn_x = screen_width() - 168.0;
         let end_btn_y = screen_height() - 58.0;
         draw_action_button("End Turn", end_btn_x, end_btn_y, 144.0, 38.0);
-        draw_text(
+        draw_ui_text(
             "Shortcuts: 1-5 Select - Enter Play - E End Turn",
             24.0,
             screen_height() - 26.0,
@@ -620,8 +621,8 @@ fn draw_header(turn: usize) {
         Color::from_rgba(8, 7, 6, 232),
     );
     draw_line(0.0, 72.0, screen_width(), 72.0, 2.0, border_color());
-    draw_text("COMBAT", 24.0, 42.0, 34.0, title_color());
-    draw_text(&format!("Turn {}", turn), 188.0, 42.0, 20.0, candle_color());
+    draw_ui_text("COMBAT", 24.0, 42.0, 34.0, title_color());
+    draw_ui_text(&format!("Turn {}", turn), 188.0, 42.0, 20.0, candle_color());
 }
 
 fn draw_party_panel(
@@ -636,8 +637,8 @@ fn draw_party_panel(
         return;
     };
 
-    draw_text(&active.name, 44.0, 148.0, 24.0, title_color());
-    draw_text(
+    draw_ui_text(&active.name, 44.0, 148.0, 24.0, title_color());
+    draw_ui_text(
         &format!(
             "HP {}/{}    Block {}",
             active.hp, active.max_hp, active.block
@@ -647,7 +648,7 @@ fn draw_party_panel(
         16.0,
         text_color(),
     );
-    draw_text(
+    draw_ui_text(
         &format!(
             "Stress {}    Energy {}/{}",
             active.stress, energy, max_energy
@@ -662,14 +663,14 @@ fn draw_party_panel(
             ResolveState::Virtuous => ("Virtuous", ready_color()),
             ResolveState::Afflicted => ("Afflicted", danger_color()),
         };
-        draw_text(label, 44.0, 230.0, 16.0, color);
+        draw_ui_text(label, 44.0, 230.0, 16.0, color);
     }
 
-    draw_text("Party", 44.0, 268.0, 16.0, candle_color());
+    draw_ui_text("Party", 44.0, 268.0, 16.0, candle_color());
     for (i, player) in players.iter().enumerate().take(4) {
         let y = 300.0 + (i as f32 * 30.0);
         let marker = if i == current_player_idx { ">" } else { " " };
-        draw_text(marker, 44.0, y, 15.0, candle_color());
+        draw_ui_text(marker, 44.0, y, 15.0, candle_color());
         if let Some(path) = &player.image_path {
             if let Some(tex) = textures.get(path) {
                 draw_texture_ex(
@@ -688,7 +689,7 @@ fn draw_party_panel(
                 );
             }
         }
-        draw_text(
+        draw_ui_text(
             &format!("{}  {}/{}", player.name, player.hp, player.max_hp),
             94.0,
             y,
@@ -723,8 +724,8 @@ fn draw_enemy_stage(enemy: &Unit, textures: &std::collections::HashMap<String, T
         draw_circle(center_x, 190.0, 54.0, Color::from_rgba(62, 44, 38, 255));
     }
 
-    let name_w = measure_text(&enemy.name, None, 26, 1.0).width;
-    draw_text(
+    let name_w = measure_ui_text(&enemy.name, None, 26, 1.0).width;
+    draw_ui_text(
         &enemy.name,
         center_x - name_w / 2.0,
         128.0,
@@ -732,8 +733,8 @@ fn draw_enemy_stage(enemy: &Unit, textures: &std::collections::HashMap<String, T
         title_color(),
     );
     let hp = format!("HP {}/{}    Block {}", enemy.hp, enemy.max_hp, enemy.block);
-    let hp_w = measure_text(&hp, None, 17, 1.0).width;
-    draw_text(&hp, center_x - hp_w / 2.0, 280.0, 17.0, text_color());
+    let hp_w = measure_ui_text(&hp, None, 17, 1.0).width;
+    draw_ui_text(&hp, center_x - hp_w / 2.0, 280.0, 17.0, text_color());
 
     let intent = format!("Intent: {}", enemy.intent.description());
     let intent_color = match &enemy.intent {
@@ -745,13 +746,13 @@ fn draw_enemy_stage(enemy: &Unit, textures: &std::collections::HashMap<String, T
     };
     draw_rectangle(720.0, 144.0, 196.0, 86.0, Color::from_rgba(22, 18, 16, 220));
     draw_rectangle_lines(720.0, 144.0, 196.0, 86.0, 1.0, intent_color);
-    draw_text("NEXT", 740.0, 172.0, 16.0, muted_text_color());
+    draw_ui_text("NEXT", 740.0, 172.0, 16.0, muted_text_color());
     draw_wrapped_text(&intent, 740.0, 202.0, 156.0, 20.0, intent_color);
 
     if !enemy.statuses.is_empty() {
         let mut x = 332.0;
         for status in enemy.statuses.iter().take(4) {
-            draw_text(
+            draw_ui_text(
                 &format!("{:?} {}", status.effect_type, status.duration),
                 x,
                 274.0,
@@ -767,7 +768,7 @@ fn draw_report_panel(state: &CombatState, preview_idx: Option<usize>) {
     panel(308.0, 314.0, 644.0, 106.0, "BATTLE REPORT");
     if let Some(idx) = preview_idx {
         if let Some(card) = state.hand.get(idx) {
-            draw_text(&card.name, 330.0, 362.0, 20.0, candle_color());
+            draw_ui_text(&card.name, 330.0, 362.0, 20.0, candle_color());
             draw_wrapped_text(
                 &card_preview(state, card),
                 330.0,
@@ -783,7 +784,7 @@ fn draw_report_panel(state: &CombatState, preview_idx: Option<usize>) {
     let mut y = 358.0;
     let mut drew_any = false;
     for line in state.resolver.log.iter().rev().take(3).rev() {
-        draw_text(line, 330.0, y, 15.0, muted_text_color());
+        draw_ui_text(line, 330.0, y, 15.0, muted_text_color());
         y += 22.0;
         drew_any = true;
     }
@@ -791,7 +792,7 @@ fn draw_report_panel(state: &CombatState, preview_idx: Option<usize>) {
         let Some(player) = state.players.get(state.current_player_idx) else {
             return;
         };
-        draw_text(
+        draw_ui_text(
             &intent_warning(&player.name, &state.enemy.intent),
             330.0,
             372.0,
@@ -807,12 +808,12 @@ fn draw_feedback_panel(feedback: Option<&(String, f32)>) {
     };
 
     let alpha = ((*time_left / 2.0).clamp(0.0, 1.0) * 210.0) as u8;
-    let width = measure_text(message, None, 18, 1.0).width + 42.0;
+    let width = measure_ui_text(message, None, 18, 1.0).width + 42.0;
     let x = (screen_width() - width) / 2.0;
     let y = 432.0;
     draw_rectangle(x, y, width, 42.0, Color::from_rgba(28, 21, 14, alpha));
     draw_rectangle_lines(x, y, width, 42.0, 1.0, candle_color());
-    draw_text(message, x + 20.0, y + 27.0, 18.0, text_color());
+    draw_ui_text(message, x + 20.0, y + 27.0, 18.0, text_color());
 }
 
 fn draw_combat_card(
@@ -847,7 +848,7 @@ fn draw_combat_card(
         26.0,
         Color::from_rgba(38, 32, 26, 246),
     );
-    draw_text(
+    draw_ui_text(
         &effective_cost.to_string(),
         x + 14.0,
         y + 25.0,
@@ -858,7 +859,7 @@ fn draw_combat_card(
             danger_color()
         },
     );
-    draw_text(
+    draw_ui_text(
         card_type(card),
         x + w - 64.0,
         y + 24.0,
@@ -897,7 +898,7 @@ fn draw_combat_card(
     }
     draw_rectangle(art_x, art_y, art_w, art_h, Color::from_rgba(0, 0, 0, 55));
 
-    draw_text(&card.name, x + 10.0, y + 136.0, 15.0, text_color());
+    draw_ui_text(&card.name, x + 10.0, y + 136.0, 15.0, text_color());
     let status = if attack_blocked {
         "Blocked this turn"
     } else if can_play {
@@ -905,7 +906,7 @@ fn draw_combat_card(
     } else {
         "Need energy"
     };
-    draw_text(
+    draw_ui_text(
         status,
         x + 10.0,
         y + 158.0,
@@ -938,8 +939,8 @@ fn draw_action_button(label: &str, x: f32, y: f32, w: f32, h: f32) {
     };
     draw_rectangle(x, y, w, h, fill);
     draw_rectangle_lines(x, y, w, h, 1.0, candle_color());
-    let tw = measure_text(label, None, 16, 1.0).width;
-    draw_text(label, x + (w - tw) / 2.0, y + 24.0, 16.0, text_color());
+    let tw = measure_ui_text(label, None, 16, 1.0).width;
+    draw_ui_text(label, x + (w - tw) / 2.0, y + 24.0, 16.0, text_color());
 }
 
 fn clicked_down(x: f32, y: f32, w: f32, h: f32) -> bool {
@@ -950,7 +951,7 @@ fn panel(x: f32, y: f32, w: f32, h: f32, title: &str) {
     draw_rectangle(x, y, w, h, Color::from_rgba(13, 11, 10, 210));
     draw_rectangle(x, y, w, 32.0, Color::from_rgba(42, 30, 18, 222));
     draw_rectangle_lines(x, y, w, h, 1.0, border_color());
-    draw_text(title, x + 14.0, y + 22.0, 15.0, candle_color());
+    draw_ui_text(title, x + 14.0, y + 22.0, 15.0, candle_color());
 }
 
 fn combat_card_rect(i: usize, hand_len: usize) -> (f32, f32, f32, f32) {
@@ -1091,10 +1092,10 @@ fn draw_wrapped_text(text: &str, x: f32, y: f32, max_width: f32, font_size: f32,
         } else {
             format!("{} {}", line, word)
         };
-        if measure_text(&candidate, None, font_size as u16, 1.0).width > max_width
+        if measure_ui_text(&candidate, None, font_size as u16, 1.0).width > max_width
             && !line.is_empty()
         {
-            draw_text(&line, x, line_y, font_size, color);
+            draw_ui_text(&line, x, line_y, font_size, color);
             line = word.to_string();
             line_y += font_size + 5.0;
         } else {
@@ -1102,7 +1103,7 @@ fn draw_wrapped_text(text: &str, x: f32, y: f32, max_width: f32, font_size: f32,
         }
     }
     if !line.is_empty() {
-        draw_text(&line, x, line_y, font_size, color);
+        draw_ui_text(&line, x, line_y, font_size, color);
     }
 }
 

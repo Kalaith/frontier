@@ -5,6 +5,7 @@ use super::{ResultState, StateTransition};
 use crate::kingdom::PartyMemberState;
 use crate::missions::{MapNode, Mission, NodeType};
 use macroquad::prelude::*;
+use macroquad_toolkit::ui::draw_ui_text;
 
 /// Active mission/expedition state with branching paths
 pub struct MissionState {
@@ -322,14 +323,14 @@ impl MissionState {
             Color::from_rgba(8, 7, 6, 228),
         );
         draw_line(0.0, 82.0, screen_width(), 82.0, 2.0, border_color());
-        draw_text(
+        draw_ui_text(
             &format!("MISSION: {}", self.mission.name),
             24.0,
             38.0,
             28.0,
             title_color(),
         );
-        draw_text(
+        draw_ui_text(
             &format!("{:?} Mission", self.mission.mission_type),
             24.0,
             66.0,
@@ -346,7 +347,7 @@ impl MissionState {
 
         // Instructions
         if self.available_paths.is_empty() {
-            draw_text(
+            draw_ui_text(
                 "Actions: [Space] Advance   [Esc] Retreat",
                 24.0,
                 screen_height() - 24.0,
@@ -354,7 +355,7 @@ impl MissionState {
                 ready_color(),
             );
         } else {
-            draw_text(
+            draw_ui_text(
                 "Actions: [Left/Right or 1-3] Choose Path   [Space] Confirm   [Esc] Retreat",
                 24.0,
                 screen_height() - 24.0,
@@ -474,11 +475,11 @@ impl MissionState {
                 } else {
                     icon_color
                 };
-            draw_text(icon, node_x + 17.0, node_y + 34.0, 26.0, text_color);
+            draw_ui_text(icon, node_x + 17.0, node_y + 34.0, 26.0, text_color);
 
             // Show selection number if path choice
             if let Some(idx) = self.available_paths.iter().position(|&id| id == node.id) {
-                draw_text(
+                draw_ui_text(
                     &format!("[{}]", idx + 1),
                     node_x + 15.0,
                     node_y - 5.0,
@@ -491,7 +492,7 @@ impl MissionState {
         // Progress indicator
         let current_layer = self.current_node().map(|n| n.layer).unwrap_or(0);
         let progress = format!("Layer {}/{}", current_layer + 1, max_layer + 1);
-        draw_text(&progress, 350.0, 147.0, 18.0, candle_color());
+        draw_ui_text(&progress, 350.0, 147.0, 18.0, candle_color());
     }
 }
 
@@ -501,7 +502,7 @@ fn draw_party_panel(
 ) {
     panel(24.0, 104.0, 284.0, 244.0, "EXPEDITION PARTY");
     if party_members.is_empty() {
-        draw_text("No party assigned.", 42.0, 156.0, 17.0, muted_text_color());
+        draw_ui_text("No party assigned.", 42.0, 156.0, 17.0, muted_text_color());
         return;
     }
 
@@ -521,8 +522,8 @@ fn draw_party_panel(
                 );
             }
         }
-        draw_text(&member.name, 92.0, y - 9.0, 16.0, text_color());
-        draw_text(
+        draw_ui_text(&member.name, 92.0, y - 9.0, 16.0, text_color());
+        draw_ui_text(
             &format!(
                 "HP {}/{}    Stress {}",
                 member.hp, member.max_hp, member.stress
@@ -545,14 +546,14 @@ fn draw_legend_panel() {
     ];
     for (i, (icon, label, color)) in rows.iter().enumerate() {
         let y = 410.0 + (i as f32 * 23.0);
-        draw_text(icon, 46.0, y, 18.0, *color);
-        draw_text(label, 76.0, y, 15.0, muted_text_color());
+        draw_ui_text(icon, 46.0, y, 18.0, *color);
+        draw_ui_text(label, 76.0, y, 15.0, muted_text_color());
     }
 }
 
 fn draw_route_panel() {
     panel(328.0, 104.0, 896.0, 456.0, "EXPEDITION ROUTE");
-    draw_text(
+    draw_ui_text(
         "Read the route before committing. Branches become decisions when the trail forks.",
         350.0,
         536.0,
@@ -564,7 +565,7 @@ fn draw_route_panel() {
 fn draw_current_node_panel(node: Option<&MapNode>, can_advance: bool) {
     panel(24.0, 516.0, 284.0, 104.0, "CURRENT REPORT");
     let Some(node) = node else {
-        draw_text(
+        draw_ui_text(
             "Route data unavailable.",
             42.0,
             568.0,
@@ -579,8 +580,8 @@ fn draw_current_node_panel(node: Option<&MapNode>, can_advance: bool) {
         NodeType::Rest => "Rest point",
         NodeType::Boss => "Command warning: boss",
     };
-    draw_text(label, 42.0, 566.0, 17.0, text_color());
-    draw_text(
+    draw_ui_text(label, 42.0, 566.0, 17.0, text_color());
+    draw_ui_text(
         if can_advance {
             "Advance to reveal the report."
         } else {
@@ -597,7 +598,7 @@ fn panel(x: f32, y: f32, w: f32, h: f32, title: &str) {
     draw_rectangle(x, y, w, h, Color::from_rgba(13, 11, 10, 210));
     draw_rectangle(x, y, w, 32.0, Color::from_rgba(42, 30, 18, 222));
     draw_rectangle_lines(x, y, w, h, 1.0, border_color());
-    draw_text(title, x + 14.0, y + 22.0, 15.0, candle_color());
+    draw_ui_text(title, x + 14.0, y + 22.0, 15.0, candle_color());
 }
 
 fn text_color() -> Color {

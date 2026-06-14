@@ -3,6 +3,7 @@
 use super::{MissionSelectState, StateTransition};
 use crate::kingdom::{Adventurer, Building, KingdomState, Party, Roster};
 use macroquad::prelude::*;
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
 const UI_BG_PATH: &str = "assets/images/ui/command_table.png";
 const HEADER_H: f32 = 92.0;
@@ -490,7 +491,7 @@ impl BaseState {
         let mut y = MAIN_Y + 50.0;
         for (quest, done) in kingdom.quest_log() {
             let color = if done { ready_color() } else { text_color() };
-            draw_text(
+            draw_ui_text(
                 &format!("{} {}", if done { "[x]" } else { "[ ]" }, quest),
                 48.0,
                 y,
@@ -506,15 +507,15 @@ impl BaseState {
             .and_then(|idx| roster.adventurers.get(idx))
             .or_else(|| roster.adventurers.first());
         if let Some(adv) = selected {
-            draw_text(
+            draw_ui_text(
                 "Selected Leader",
                 592.0,
                 MAIN_Y + 50.0,
                 18.0,
                 muted_text_color(),
             );
-            draw_text(&adv.name, 592.0, MAIN_Y + 82.0, 26.0, candle_color());
-            draw_text(
+            draw_ui_text(&adv.name, 592.0, MAIN_Y + 82.0, 26.0, candle_color());
+            draw_ui_text(
                 &format!(
                     "{} - HP {}/{} - Stress {} - {}",
                     format!("{:?}", adv.class),
@@ -563,8 +564,8 @@ impl BaseState {
             .selected_adventurer
             .and_then(|idx| roster.adventurers.get(idx));
         if let Some(adv) = selected {
-            draw_text(&adv.name, 48.0, MAIN_Y + 54.0, 24.0, candle_color());
-            draw_text(
+            draw_ui_text(&adv.name, 48.0, MAIN_Y + 54.0, 24.0, candle_color());
+            draw_ui_text(
                 &format!("Deck: {} cards", deck_size(adv)),
                 48.0,
                 MAIN_Y + 86.0,
@@ -612,7 +613,7 @@ impl BaseState {
             "GRAVEYARD / TRAUMA LOG",
         );
         if roster.graveyard.is_empty() {
-            draw_text(
+            draw_ui_text(
                 "No names carved into the boards yet.",
                 48.0,
                 MAIN_Y + 62.0,
@@ -621,7 +622,7 @@ impl BaseState {
             );
         } else {
             for (i, adv) in roster.graveyard.iter().enumerate().take(5) {
-                draw_text(
+                draw_ui_text(
                     &adv.name,
                     48.0,
                     MAIN_Y + 58.0 + (i as f32 * 32.0),
@@ -662,7 +663,7 @@ impl BaseState {
             475.0,
             "PARTY / ADVENTURERS",
         );
-        draw_text(
+        draw_ui_text(
             &format!(
                 "Choose the expedition party ({}/{})",
                 self.forming_party.size(),
@@ -690,7 +691,7 @@ impl BaseState {
             } else {
                 text_color()
             };
-            draw_text(
+            draw_ui_text(
                 &format!(
                     "[{}] {:<18} {:<9} HP {}/{}  Stress {}  {}",
                     i + 1,
@@ -708,7 +709,7 @@ impl BaseState {
             );
         }
 
-        draw_text(
+        draw_ui_text(
             "[Enter] Open Mission Board  [Esc] Cancel",
             48.0,
             screen_height() - 38.0,
@@ -793,7 +794,7 @@ impl BaseState {
         {
             draw_adventurer_details(adv);
         } else {
-            draw_text(
+            draw_ui_text(
                 "Select an adventurer, facility, or goal.",
                 48.0,
                 DETAIL_Y + 56.0,
@@ -825,14 +826,14 @@ impl BaseState {
             screen_height() - 72.0,
             "DECK / TRAINING",
         );
-        draw_text(
+        draw_ui_text(
             &format!("{}'s Deck", adv.name),
             62.0,
             88.0,
             34.0,
             candle_color(),
         );
-        draw_text(
+        draw_ui_text(
             "[Esc] Close",
             screen_width() - 170.0,
             86.0,
@@ -908,8 +909,8 @@ fn draw_header(kingdom: &KingdomState, active_tab: BaseTab) {
         Color::from_rgba(10, 7, 6, 218),
     );
     draw_line(0.0, HEADER_H, screen_width(), HEADER_H, 2.0, border_color());
-    draw_text("FRONTIER KINGDOM", SIDE_PAD, 38.0, 34.0, title_color());
-    draw_text(
+    draw_ui_text("FRONTIER KINGDOM", SIDE_PAD, 38.0, 34.0, title_color());
+    draw_ui_text(
         &format!(
             "Day {}    Threat {}    Morale: {}    {}",
             kingdom.day,
@@ -952,7 +953,7 @@ fn draw_tabs(active_tab: BaseTab) {
                 border_color()
             },
         );
-        draw_text(
+        draw_ui_text(
             tab.label(),
             x + 10.0,
             82.0,
@@ -980,8 +981,8 @@ fn draw_resources_panel(kingdom: &KingdomState, x: f32, y: f32, w: f32, h: f32) 
     ];
     let mut row_y = y + 52.0;
     for (label, value, color) in rows {
-        draw_text(label, x + 18.0, row_y, 17.0, muted_text_color());
-        draw_text(&value.to_string(), x + w - 70.0, row_y, 20.0, color);
+        draw_ui_text(label, x + 18.0, row_y, 17.0, muted_text_color());
+        draw_ui_text(&value.to_string(), x + w - 70.0, row_y, 20.0, color);
         row_y += 30.0;
     }
 }
@@ -999,7 +1000,7 @@ fn draw_adventurer_summary(
     for (i, adv) in roster.adventurers.iter().enumerate().take(5) {
         draw_adventurer_row(i, adv, selected == Some(i), x + 20.0, y + 50.0);
         if leader_id == Some(adv.id.as_str()) {
-            draw_text(
+            draw_ui_text(
                 "Leader",
                 x + w - 90.0,
                 y + 74.0 + (i as f32 * 34.0),
@@ -1016,7 +1017,7 @@ fn draw_goals_panel(kingdom: &KingdomState, x: f32, y: f32, w: f32, h: f32) {
     for (quest, done) in kingdom.quest_log().into_iter().take(5) {
         let color = if done { ready_color() } else { text_color() };
         let marker = if done { "[x]" } else { "[ ]" };
-        draw_text(
+        draw_ui_text(
             &format!("{} {}", marker, quest),
             x + 18.0,
             row_y,
@@ -1026,7 +1027,7 @@ fn draw_goals_panel(kingdom: &KingdomState, x: f32, y: f32, w: f32, h: f32) {
         row_y += 28.0;
     }
     if let Some(event) = &kingdom.last_event {
-        draw_text("Alert", x + 18.0, y + h - 58.0, 16.0, danger_color());
+        draw_ui_text("Alert", x + 18.0, y + h - 58.0, 16.0, danger_color());
         draw_wrapped_text(
             event,
             x + 18.0,
@@ -1044,14 +1045,14 @@ fn draw_readiness_summary(kingdom: &KingdomState, roster: &Roster, x: f32, y: f3
         .iter()
         .filter(|adv| readiness_label(adv) == "Ready")
         .count();
-    draw_text(
+    draw_ui_text(
         &format!("Ready heroes: {}", ready),
         x,
         y,
         20.0,
         ready_color(),
     );
-    draw_text(
+    draw_ui_text(
         &format!("Supplies available: {}", kingdom.stats.supplies),
         x,
         y + 34.0,
@@ -1088,21 +1089,21 @@ fn draw_adventurer_row(i: usize, adv: &Adventurer, selected: bool, x: f32, start
     if selected {
         draw_rectangle_lines(bg_x, bg_y, bg_w, row_h, 2.0, candle_color());
     }
-    draw_text(
+    draw_ui_text(
         &format!("[{}] {}", i + 1, adv.name),
         x,
         y,
         18.0,
         text_color(),
     );
-    draw_text(
+    draw_ui_text(
         &format!("{:?}", adv.class),
         x + 220.0,
         y,
         15.0,
         muted_text_color(),
     );
-    draw_text(
+    draw_ui_text(
         readiness_label(adv),
         x + 330.0,
         y,
@@ -1136,14 +1137,14 @@ fn draw_facility_card(i: usize, building: &Building, selected: bool, can_build: 
             border_color()
         },
     );
-    draw_text(
+    draw_ui_text(
         &building.name.to_uppercase(),
         x + 14.0,
         y + 28.0,
         18.0,
         title_color(),
     );
-    draw_text(
+    draw_ui_text(
         facility_purpose(&building.id),
         x + 14.0,
         y + 52.0,
@@ -1158,7 +1159,7 @@ fn draw_facility_card(i: usize, building: &Building, selected: bool, can_build: 
             building.cost_gold, building.cost_supplies
         )
     };
-    draw_text(
+    draw_ui_text(
         &status,
         x + 14.0,
         y + h - 20.0,
@@ -1171,7 +1172,7 @@ fn draw_facility_card(i: usize, building: &Building, selected: bool, can_build: 
             danger_color()
         },
     );
-    draw_text(
+    draw_ui_text(
         if building.built { "Active" } else { "[Build]" },
         x + w - 82.0,
         y + h - 20.0,
@@ -1206,8 +1207,8 @@ fn draw_action_button(label: &str, x: f32, y: f32, w: f32, h: f32, enabled: bool
             border_color()
         },
     );
-    let tw = measure_text(label, None, 16, 1.0).width;
-    draw_text(
+    let tw = measure_ui_text(label, None, 16, 1.0).width;
+    draw_ui_text(
         label,
         x + (w - tw) / 2.0,
         y + 21.0,
@@ -1221,14 +1222,14 @@ fn draw_action_button(label: &str, x: f32, y: f32, w: f32, h: f32, enabled: bool
 }
 
 fn draw_adventurer_details(adv: &Adventurer) {
-    draw_text(
+    draw_ui_text(
         &adv.name.to_uppercase(),
         48.0,
         DETAIL_Y + 48.0,
         28.0,
         title_color(),
     );
-    draw_text(
+    draw_ui_text(
         &format!("{:?} - Level {}", adv.class, adv.level),
         48.0,
         DETAIL_Y + 78.0,
@@ -1253,7 +1254,7 @@ fn draw_adventurer_details(adv: &Adventurer) {
             .collect::<Vec<_>>()
             .join(", ")
     };
-    draw_text(
+    draw_ui_text(
         &format!(
             "HP {}/{}    Stress {}    Injuries: {}    Trauma: {}    Deck: {} cards",
             adv.hp,
@@ -1268,7 +1269,7 @@ fn draw_adventurer_details(adv: &Adventurer) {
         18.0,
         text_color(),
     );
-    draw_text("Best Use", 48.0, DETAIL_Y + 150.0, 18.0, candle_color());
+    draw_ui_text("Best Use", 48.0, DETAIL_Y + 150.0, 18.0, candle_color());
     draw_wrapped_text(
         class_guidance(adv),
         145.0,
@@ -1277,7 +1278,7 @@ fn draw_adventurer_details(adv: &Adventurer) {
         16.0,
         muted_text_color(),
     );
-    draw_text(
+    draw_ui_text(
         "Actions: [View Deck] [Assign to Party] [Treat] [Train]",
         48.0,
         DETAIL_Y + 196.0,
@@ -1287,14 +1288,14 @@ fn draw_adventurer_details(adv: &Adventurer) {
 }
 
 fn draw_building_details(building: &Building, kingdom: &KingdomState, can_build: bool) {
-    draw_text(
+    draw_ui_text(
         &building.name.to_uppercase(),
         48.0,
         DETAIL_Y + 48.0,
         28.0,
         title_color(),
     );
-    draw_text(
+    draw_ui_text(
         if building.built {
             "Constructed"
         } else {
@@ -1309,7 +1310,7 @@ fn draw_building_details(building: &Building, kingdom: &KingdomState, can_build:
             danger_color()
         },
     );
-    draw_text("Purpose", 48.0, DETAIL_Y + 116.0, 18.0, candle_color());
+    draw_ui_text("Purpose", 48.0, DETAIL_Y + 116.0, 18.0, candle_color());
     draw_wrapped_text(
         facility_purpose(&building.id),
         145.0,
@@ -1342,7 +1343,7 @@ fn draw_building_details(building: &Building, kingdom: &KingdomState, can_build:
         16.0,
         muted_text_color(),
     );
-    draw_text(
+    draw_ui_text(
         if building.built {
             "Actions: facility active"
         } else {
@@ -1360,7 +1361,7 @@ fn draw_building_details(building: &Building, kingdom: &KingdomState, can_build:
 }
 
 fn draw_goals_detail(kingdom: &KingdomState) {
-    draw_text(
+    draw_ui_text(
         "CURRENT FRONTIER CHARTER",
         48.0,
         DETAIL_Y + 48.0,
@@ -1369,7 +1370,7 @@ fn draw_goals_detail(kingdom: &KingdomState) {
     );
     let mut y = DETAIL_Y + 84.0;
     for (quest, done) in kingdom.quest_log() {
-        draw_text(
+        draw_ui_text(
             &format!("{} {}", if done { "[x]" } else { "[ ]" }, quest),
             48.0,
             y,
@@ -1381,7 +1382,7 @@ fn draw_goals_detail(kingdom: &KingdomState) {
 }
 
 fn draw_graveyard_detail(roster: &Roster) {
-    draw_text(
+    draw_ui_text(
         "LOSSES AND SCARS",
         48.0,
         DETAIL_Y + 48.0,
@@ -1404,14 +1405,14 @@ fn draw_graveyard_detail(roster: &Roster) {
 }
 
 fn draw_training_detail(adv: &Adventurer, kingdom: &KingdomState) {
-    draw_text(
+    draw_ui_text(
         "DECK / TRAINING",
         48.0,
         DETAIL_Y + 48.0,
         26.0,
         title_color(),
     );
-    draw_text(
+    draw_ui_text(
         &format!("{} currently has {} cards.", adv.name, deck_size(adv)),
         48.0,
         DETAIL_Y + 84.0,
@@ -1443,14 +1444,14 @@ fn draw_card_frame(card: &crate::combat::Card, x: f32, y: f32, w: f32, h: f32, s
         24.0,
         Color::from_rgba(38, 33, 27, 240),
     );
-    draw_text(
+    draw_ui_text(
         &format!("{}", card.cost),
         x + 12.0,
         y + 24.0,
         18.0,
         candle_color(),
     );
-    draw_text(
+    draw_ui_text(
         card_type(card),
         x + w - 62.0,
         y + 24.0,
@@ -1464,7 +1465,7 @@ fn draw_card_frame(card: &crate::combat::Card, x: f32, y: f32, w: f32, h: f32, s
         h * 0.42,
         Color::from_rgba(43, 40, 38, 255),
     );
-    draw_text(&card.name, x + 10.0, y + h - 52.0, 15.0, text_color());
+    draw_ui_text(&card.name, x + 10.0, y + h - 52.0, 15.0, text_color());
     draw_wrapped_text(
         &card.description,
         x + 10.0,
@@ -1476,7 +1477,7 @@ fn draw_card_frame(card: &crate::combat::Card, x: f32, y: f32, w: f32, h: f32, s
 }
 
 fn draw_shortcuts() {
-    draw_text(
+    draw_ui_text(
         "Shortcuts: 1-9 Select - Tab Tabs - M Party - D Deck - H/T Treat - U Train - F5 Save - F9 Load",
         SIDE_PAD,
         screen_height() - 18.0,
@@ -1489,7 +1490,7 @@ fn panel(x: f32, y: f32, w: f32, h: f32, title: &str) {
     draw_rectangle(x, y, w, h, Color::from_rgba(16, 13, 11, 218));
     draw_rectangle_lines(x, y, w, h, 1.0, border_color());
     draw_rectangle(x, y, w, 32.0, Color::from_rgba(43, 30, 17, 205));
-    draw_text(title, x + 14.0, y + 23.0, 16.0, candle_color());
+    draw_ui_text(title, x + 14.0, y + 23.0, 16.0, candle_color());
 }
 
 fn draw_wrapped_text(text: &str, x: f32, y: f32, max_width: f32, font_size: f32, color: Color) {
@@ -1501,10 +1502,10 @@ fn draw_wrapped_text(text: &str, x: f32, y: f32, max_width: f32, font_size: f32,
         } else {
             format!("{} {}", current, word)
         };
-        if measure_text(&candidate, None, font_size as u16, 1.0).width > max_width
+        if measure_ui_text(&candidate, None, font_size as u16, 1.0).width > max_width
             && !current.is_empty()
         {
-            draw_text(&current, x, line_y, font_size, color);
+            draw_ui_text(&current, x, line_y, font_size, color);
             current = word.to_string();
             line_y += font_size + 5.0;
         } else {
@@ -1512,7 +1513,7 @@ fn draw_wrapped_text(text: &str, x: f32, y: f32, max_width: f32, font_size: f32,
         }
     }
     if !current.is_empty() {
-        draw_text(&current, x, line_y, font_size, color);
+        draw_ui_text(&current, x, line_y, font_size, color);
     }
 }
 

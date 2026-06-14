@@ -4,6 +4,7 @@ use super::StateTransition;
 use crate::kingdom::{Adventurer, AdventurerClass, KingdomState, Roster};
 use macroquad::prelude::*;
 use macroquad_toolkit::rng;
+use macroquad_toolkit::ui::draw_ui_text;
 use std::collections::HashMap;
 
 /// Names for random adventurers
@@ -120,8 +121,8 @@ impl RecruitState {
     }
 
     pub fn draw(&self, kingdom: &KingdomState, textures: &HashMap<String, Texture2D>) {
-        draw_text("RECRUITMENT", 20.0, 40.0, 32.0, WHITE);
-        draw_text(
+        draw_ui_text("RECRUITMENT", 20.0, 40.0, 32.0, WHITE);
+        draw_ui_text(
             &format!("Gold: {}", kingdom.stats.gold),
             20.0,
             70.0,
@@ -174,14 +175,14 @@ impl RecruitState {
 
             // Info
             let text_color = if is_selected { WHITE } else { GRAY };
-            draw_text(
+            draw_ui_text(
                 &format!("[{}] {}", i + 1, recruit.adventurer.name),
                 140.0,
                 y + 30.0,
                 22.0,
                 text_color,
             );
-            draw_text(
+            draw_ui_text(
                 &format!(
                     "{:?} - {:?}",
                     recruit.adventurer.gender, recruit.adventurer.class
@@ -191,7 +192,7 @@ impl RecruitState {
                 18.0,
                 SKYBLUE,
             );
-            draw_text(
+            draw_ui_text(
                 &format!("HP: {}", recruit.adventurer.max_hp),
                 140.0,
                 y + 80.0,
@@ -201,7 +202,7 @@ impl RecruitState {
 
             // Cost
             let cost_color = if can_afford { YELLOW } else { RED };
-            draw_text(
+            draw_ui_text(
                 &format!("Cost: {} Gold", recruit.cost),
                 350.0,
                 y + 55.0,
@@ -211,10 +212,10 @@ impl RecruitState {
         }
 
         if self.recruits.is_empty() {
-            draw_text("No recruits available", 20.0, start_y + 30.0, 24.0, GRAY);
+            draw_ui_text("No recruits available", 20.0, start_y + 30.0, 24.0, GRAY);
         }
 
-        draw_text(
+        draw_ui_text(
             "[↑/↓] Select  [ENTER] Hire  [ESC] Back",
             20.0,
             screen_height() - 40.0,

@@ -5,6 +5,7 @@ use crate::kingdom::PartyMemberState;
 use crate::missions::events::{Event, EventOutcome};
 use crate::missions::{MapNode, Mission};
 use macroquad::prelude::*;
+use macroquad_toolkit::ui::draw_ui_text;
 use std::collections::HashMap;
 
 /// State for handling mission events
@@ -203,7 +204,7 @@ impl EventState {
         draw_rectangle_lines(panel_x, panel_y, panel_w, panel_h, 2.0, WHITE);
 
         // Title
-        draw_text(
+        draw_ui_text(
             &self.event.title,
             panel_x + 20.0,
             panel_y + 40.0,
@@ -228,7 +229,7 @@ impl EventState {
 
             // Rough estimate: 8 pixels per character at size 18
             if test_line.len() as f32 * 8.0 > max_width {
-                draw_text(&line, panel_x + 20.0, y, 18.0, LIGHTGRAY);
+                draw_ui_text(&line, panel_x + 20.0, y, 18.0, LIGHTGRAY);
                 y += 25.0;
                 line = word.to_string();
             } else {
@@ -236,12 +237,12 @@ impl EventState {
             }
         }
         if !line.is_empty() {
-            draw_text(&line, panel_x + 20.0, y, 18.0, LIGHTGRAY);
+            draw_ui_text(&line, panel_x + 20.0, y, 18.0, LIGHTGRAY);
         }
 
         // Choices
         let choices_y = panel_y + 200.0;
-        draw_text("CHOOSE:", panel_x + 20.0, choices_y, 20.0, WHITE);
+        draw_ui_text("CHOOSE:", panel_x + 20.0, choices_y, 20.0, WHITE);
 
         for (i, choice) in self.event.choices.iter().enumerate() {
             let y = choices_y + 35.0 + (i as f32 * 50.0);
@@ -283,7 +284,7 @@ impl EventState {
 
             // Choice text
             let text_color = if is_selected { WHITE } else { GRAY };
-            draw_text(
+            draw_ui_text(
                 &format!("[{}] {}", i + 1, choice.text),
                 panel_x + 30.0,
                 y + 10.0,
@@ -293,7 +294,7 @@ impl EventState {
         }
 
         // Instructions
-        draw_text(
+        draw_ui_text(
             "Click choice to select, click again to confirm • Or use [↑/↓] and [ENTER]",
             panel_x + 20.0,
             panel_y + panel_h - 30.0,

@@ -7,6 +7,7 @@ use crate::save::{ensure_save_directory, SaveData};
 use crate::state::*;
 use macroquad::prelude::*;
 use macroquad_toolkit::assets::{load_texture_from_pack_or_file, AssetPack};
+use macroquad_toolkit::ui::draw_ui_text;
 use std::collections::HashMap;
 
 const ASSET_PACK_PATH: &str = "assets.zip";
@@ -232,7 +233,7 @@ impl Game {
         if let Some((msg, _)) = &self.message {
             let x = screen_width() / 2.0 - 100.0;
             draw_rectangle(x - 10.0, 10.0, 220.0, 35.0, Color::from_rgba(0, 0, 0, 200));
-            draw_text(msg, x, 35.0, 24.0, YELLOW);
+            draw_ui_text(msg, x, 35.0, 24.0, YELLOW);
         }
     }
 

@@ -1,6 +1,7 @@
 //! UI modules - immediate mode, stateless rendering with mouse support
 
 use macroquad::prelude::*;
+use macroquad_toolkit::ui::draw_ui_text;
 
 // Import toolkit utilities
 use macroquad_toolkit::input::{is_hovered_rect, was_clicked_rect, was_pressed_rect};
@@ -109,11 +110,11 @@ fn draw_tooltip(title: &str, body: &str) {
 
     draw_rectangle(x, y, width, height, Color::from_rgba(18, 18, 24, 245));
     draw_rectangle_lines(x, y, width, height, 1.0, YELLOW);
-    draw_text(title, x + 12.0, y + 24.0, 18.0, WHITE);
+    draw_ui_text(title, x + 12.0, y + 24.0, 18.0, WHITE);
 
     let mut line_y = y + 48.0;
     for line in lines {
-        draw_text(&line, x + 12.0, line_y, 14.0, LIGHTGRAY);
+        draw_ui_text(&line, x + 12.0, line_y, 14.0, LIGHTGRAY);
         line_y += 18.0;
     }
 }

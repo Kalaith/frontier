@@ -4,6 +4,7 @@ use super::{MissionState, StateTransition};
 use crate::kingdom::{KingdomState, Party, PartyMemberState, Roster};
 use crate::missions::{load_missions, Mission, MissionType};
 use macroquad::prelude::*;
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
 const HEADER_H: f32 = 86.0;
 const SIDE_PAD: f32 = 24.0;
@@ -202,8 +203,8 @@ impl MissionSelectState {
             Color::from_rgba(10, 7, 6, 230),
         );
         draw_line(0.0, HEADER_H, screen_width(), HEADER_H, 2.0, border_color());
-        draw_text("EMBARK PREPARATION", SIDE_PAD, 42.0, 34.0, title_color());
-        draw_text(
+        draw_ui_text("EMBARK PREPARATION", SIDE_PAD, 42.0, 34.0, title_color());
+        draw_ui_text(
             &format!(
                 "Day {}     Threat {}     Morale: {}",
                 kingdom.day,
@@ -215,7 +216,7 @@ impl MissionSelectState {
             18.0,
             muted_text_color(),
         );
-        draw_text(
+        draw_ui_text(
             "Choose the route. Read the risks. Send them back into the woods.",
             SIDE_PAD,
             70.0,
@@ -246,14 +247,14 @@ impl MissionSelectState {
         }
 
         let party_risk = party_risk_label(&self.party_members);
-        draw_text(
+        draw_ui_text(
             "Party Risk",
             PARTY_X + 18.0,
             PANEL_Y + 386.0,
             17.0,
             candle_color(),
         );
-        draw_text(
+        draw_ui_text(
             party_risk,
             PARTY_X + 118.0,
             PANEL_Y + 386.0,
@@ -287,14 +288,14 @@ impl MissionSelectState {
         let unlocked = self.is_mission_unlocked(mission, kingdom);
         let effective = mission.scaled_for_kingdom(kingdom);
 
-        draw_text(
+        draw_ui_text(
             &mission.name.to_uppercase(),
             DETAIL_X + 18.0,
             PANEL_Y + 48.0,
             26.0,
             title_color(),
         );
-        draw_text(
+        draw_ui_text(
             &format!(
                 "{:?} - {}",
                 mission.mission_type,
@@ -315,7 +316,7 @@ impl MissionSelectState {
         );
 
         if !unlocked {
-            draw_text(
+            draw_ui_text(
                 "LOCKED",
                 DETAIL_X + 18.0,
                 PANEL_Y + 174.0,
@@ -331,14 +332,14 @@ impl MissionSelectState {
                 text_color(),
             );
         } else {
-            draw_text(
+            draw_ui_text(
                 "Expected",
                 DETAIL_X + 18.0,
                 PANEL_Y + 174.0,
                 18.0,
                 candle_color(),
             );
-            draw_text(
+            draw_ui_text(
                 &format!(
                     "Difficulty {}    Stress Gain {}    Length {}",
                     effective.difficulty, effective.base_stress, effective.length
@@ -348,28 +349,28 @@ impl MissionSelectState {
                 17.0,
                 text_color(),
             );
-            draw_text(
+            draw_ui_text(
                 "Possible Encounters",
                 DETAIL_X + 18.0,
                 PANEL_Y + 242.0,
                 18.0,
                 candle_color(),
             );
-            draw_text(
+            draw_ui_text(
                 encounter_line(&mission.mission_type),
                 DETAIL_X + 18.0,
                 PANEL_Y + 270.0,
                 17.0,
                 muted_text_color(),
             );
-            draw_text(
+            draw_ui_text(
                 "Rewards",
                 DETAIL_X + 18.0,
                 PANEL_Y + 316.0,
                 18.0,
                 candle_color(),
             );
-            draw_text(
+            draw_ui_text(
                 &format!(
                     "{} Gold    {} Supplies    {} Knowledge",
                     mission.reward_gold, mission.reward_supplies, mission.reward_knowledge
@@ -379,14 +380,14 @@ impl MissionSelectState {
                 17.0,
                 reward_color(),
             );
-            draw_text(
+            draw_ui_text(
                 "Warnings",
                 DETAIL_X + 18.0,
                 PANEL_Y + 390.0,
                 18.0,
                 candle_color(),
             );
-            draw_text(
+            draw_ui_text(
                 mission_warning(&effective, &self.party_members),
                 DETAIL_X + 112.0,
                 PANEL_Y + 390.0,
@@ -417,7 +418,7 @@ impl MissionSelectState {
         } else {
             "Shortcuts: Up/Down Select - Enter Embark - Esc Back"
         };
-        draw_text(
+        draw_ui_text(
             line,
             SIDE_PAD,
             screen_height() - 24.0,
@@ -453,9 +454,9 @@ fn draw_member_row(
         }
     }
 
-    draw_text(&member.name, x + 68.0, y, 18.0, text_color());
-    draw_text(label, x + w - 68.0, y, 13.0, muted_text_color());
-    draw_text(
+    draw_ui_text(&member.name, x + 68.0, y, 18.0, text_color());
+    draw_ui_text(label, x + w - 68.0, y, 13.0, muted_text_color());
+    draw_ui_text(
         &format!(
             "HP {}/{}    Stress {}",
             member.hp, member.max_hp, member.stress
@@ -466,7 +467,7 @@ fn draw_member_row(
         muted_text_color(),
     );
     let risk = member_risk_label(member);
-    draw_text(risk, x + w - 72.0, y + 24.0, 14.0, risk_color(risk));
+    draw_ui_text(risk, x + w - 72.0, y + 24.0, 14.0, risk_color(risk));
 }
 
 fn draw_mission_card(
@@ -496,7 +497,7 @@ fn draw_mission_card(
         },
     );
 
-    draw_text(
+    draw_ui_text(
         &format!("[{}] {}", i + 1, mission.name),
         x + 12.0,
         y + 24.0,
@@ -507,7 +508,7 @@ fn draw_mission_card(
             muted_text_color()
         },
     );
-    draw_text(
+    draw_ui_text(
         &format!("{:?}", mission.mission_type),
         x + 12.0,
         y + 48.0,
@@ -517,7 +518,7 @@ fn draw_mission_card(
 
     if unlocked {
         let effective = mission.scaled_for_kingdom(kingdom);
-        draw_text(
+        draw_ui_text(
             &format!(
                 "Risk {} / Stress {}",
                 effective.difficulty, effective.base_stress
@@ -527,7 +528,7 @@ fn draw_mission_card(
             14.0,
             muted_text_color(),
         );
-        draw_text(
+        draw_ui_text(
             &format!("{}g", mission.reward_gold),
             x + w - 58.0,
             y + 48.0,
@@ -535,8 +536,8 @@ fn draw_mission_card(
             reward_color(),
         );
     } else {
-        draw_text("LOCKED", x + w - 76.0, y + 24.0, 15.0, danger_color());
-        draw_text(
+        draw_ui_text("LOCKED", x + w - 76.0, y + 24.0, 15.0, danger_color());
+        draw_ui_text(
             &mission.unlock_requirement.description(),
             x + 132.0,
             y + 48.0,
@@ -568,8 +569,8 @@ fn draw_action_button(label: &str, x: f32, y: f32, w: f32, h: f32, enabled: bool
             border_color()
         },
     );
-    let tw = measure_text(label, None, 16, 1.0).width;
-    draw_text(
+    let tw = measure_ui_text(label, None, 16, 1.0).width;
+    draw_ui_text(
         label,
         x + (w - tw) / 2.0,
         y + 24.0,
@@ -586,7 +587,7 @@ fn panel(x: f32, y: f32, w: f32, h: f32, title: &str) {
     draw_rectangle(x, y, w, h, Color::from_rgba(13, 11, 10, 210));
     draw_rectangle(x, y, w, 32.0, Color::from_rgba(42, 30, 18, 222));
     draw_rectangle_lines(x, y, w, h, 1.0, border_color());
-    draw_text(title, x + 14.0, y + 22.0, 15.0, candle_color());
+    draw_ui_text(title, x + 14.0, y + 22.0, 15.0, candle_color());
 }
 
 fn mission_card_rect(i: usize) -> (f32, f32, f32, f32) {
@@ -701,10 +702,10 @@ fn draw_wrapped_text(text: &str, x: f32, y: f32, max_width: f32, font_size: f32,
         } else {
             format!("{} {}", line, word)
         };
-        if measure_text(&candidate, None, font_size as u16, 1.0).width > max_width
+        if measure_ui_text(&candidate, None, font_size as u16, 1.0).width > max_width
             && !line.is_empty()
         {
-            draw_text(&line, x, line_y, font_size, color);
+            draw_ui_text(&line, x, line_y, font_size, color);
             line = word.to_string();
             line_y += font_size + 6.0;
         } else {
@@ -712,7 +713,7 @@ fn draw_wrapped_text(text: &str, x: f32, y: f32, max_width: f32, font_size: f32,
         }
     }
     if !line.is_empty() {
-        draw_text(&line, x, line_y, font_size, color);
+        draw_ui_text(&line, x, line_y, font_size, color);
     }
 }
 

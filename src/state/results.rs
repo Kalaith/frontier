@@ -4,6 +4,7 @@ use super::StateTransition;
 use crate::kingdom::{Injury, KingdomState, PartyMemberState, Roster};
 use crate::missions::Mission;
 use macroquad::prelude::*;
+use macroquad_toolkit::ui::draw_ui_text;
 
 /// Post-mission results state
 pub struct ResultState {
@@ -340,14 +341,14 @@ impl ResultState {
         };
         let title_color = if self.victory { GREEN } else { RED };
 
-        draw_text(title, 20.0, 60.0, 36.0, title_color);
+        draw_ui_text(title, 20.0, 60.0, 36.0, title_color);
 
         let mut y = 120.0;
 
         if is_dead {
-            draw_text("The adventurer has perished.", 20.0, y, 24.0, RED);
-            draw_text("Their name will be remembered.", 20.0, y + 30.0, 20.0, GRAY);
-            draw_text(
+            draw_ui_text("The adventurer has perished.", 20.0, y, 24.0, RED);
+            draw_ui_text("Their name will be remembered.", 20.0, y + 30.0, 20.0, GRAY);
+            draw_ui_text(
                 "[ENTER] Return to Kingdom",
                 20.0,
                 screen_height() - 40.0,
@@ -359,15 +360,15 @@ impl ResultState {
 
         // Show final stats if available
         if let Some(final_hp) = self.final_hp {
-            draw_text(&format!("Final HP: {}", final_hp), 20.0, y, 20.0, GREEN);
+            draw_ui_text(&format!("Final HP: {}", final_hp), 20.0, y, 20.0, GREEN);
             y += 30.0;
         } else if self.hp_lost > 0 {
-            draw_text(&format!("HP Lost: -{}", self.hp_lost), 20.0, y, 20.0, RED);
+            draw_ui_text(&format!("HP Lost: -{}", self.hp_lost), 20.0, y, 20.0, RED);
             y += 30.0;
         }
 
         if let Some(final_stress) = self.final_stress {
-            draw_text(
+            draw_ui_text(
                 &format!("Final Stress: {}", final_stress),
                 20.0,
                 y,
@@ -376,7 +377,7 @@ impl ResultState {
             );
             y += 30.0;
         } else {
-            draw_text(
+            draw_ui_text(
                 &format!("Stress Gained: +{}", self.stress_gained),
                 20.0,
                 y,
@@ -387,25 +388,25 @@ impl ResultState {
         }
 
         if !self.injuries.is_empty() {
-            draw_text("Injuries:", 20.0, y, 20.0, RED);
+            draw_ui_text("Injuries:", 20.0, y, 20.0, RED);
             y += 25.0;
             for injury in &self.injuries {
-                draw_text(&format!("  - {}", injury), 20.0, y, 18.0, PINK);
+                draw_ui_text(&format!("  - {}", injury), 20.0, y, 18.0, PINK);
                 y += 22.0;
             }
             y += 10.0;
         }
 
         if !self.rewards.is_empty() {
-            draw_text("Rewards:", 20.0, y, 20.0, GREEN);
+            draw_ui_text("Rewards:", 20.0, y, 20.0, GREEN);
             y += 25.0;
             for reward in &self.rewards {
-                draw_text(&format!("  + {}", reward), 20.0, y, 18.0, LIME);
+                draw_ui_text(&format!("  + {}", reward), 20.0, y, 18.0, LIME);
                 y += 22.0;
             }
         }
 
-        draw_text(
+        draw_ui_text(
             "[ENTER] Return to Kingdom",
             20.0,
             screen_height() - 40.0,
