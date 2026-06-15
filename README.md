@@ -75,3 +75,10 @@ Generated build outputs belong in ignored directories such as `target/` and `dis
 - `ui_redesign_plan.md`: command-table UI redesign plan and priorities.
 - `roadmap.md`: completed roadmap checklist.
 - `generate_assets.ps1`, `comfyui-*.ps1`: optional local asset-generation tooling.
+# Practical Future Improvements
+
+- Add mission-state tests for selection, launch, resolution, rewards, repeat attempts, and failure branches.
+- Extract recruit, event, and combat reward math into pure evaluators with fixtures for low-resource and over-capacity cases.
+- Add campaign scenario fixtures covering base upgrades, mission chains, events, and result-screen progression.
+- Consolidate state-screen navigation so base, combat, event, recruit, and results screens share one transition policy.
+
