@@ -254,7 +254,7 @@ impl ResultState {
     }
 
     fn apply_single_adventurer(&self, roster: &mut Roster) {
-        let is_dead = self.final_hp.map_or(false, |final_hp| final_hp <= 0);
+        let is_dead = self.final_hp.is_some_and(|final_hp| final_hp <= 0);
         if is_dead {
             roster.record_death(&self.adventurer_id);
             return;
@@ -330,7 +330,7 @@ impl ResultState {
     }
 
     pub fn draw(&self, _textures: &std::collections::HashMap<String, Texture2D>) {
-        let is_dead = self.final_hp.map_or(false, |hp| hp <= 0);
+        let is_dead = self.final_hp.is_some_and(|hp| hp <= 0);
 
         let title = if is_dead {
             "FALLEN IN BATTLE"

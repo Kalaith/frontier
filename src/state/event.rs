@@ -87,15 +87,13 @@ impl EventState {
         let choice_count = self.event.choices.len();
 
         // Keyboard navigation
-        if is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W) {
-            if self.selected_choice > 0 {
-                self.selected_choice -= 1;
-            }
+        if (is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W)) && self.selected_choice > 0 {
+            self.selected_choice -= 1;
         }
-        if is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S) {
-            if self.selected_choice < choice_count.saturating_sub(1) {
-                self.selected_choice += 1;
-            }
+        if (is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S))
+            && self.selected_choice < choice_count.saturating_sub(1)
+        {
+            self.selected_choice += 1;
         }
 
         // Number keys and mouse clicks
@@ -161,8 +159,8 @@ impl EventState {
                 // Apply HP/stress changes to party members
                 let mut updated_members = ctx.party_members.clone();
                 for member in &mut updated_members {
-                    member.hp = (member.hp + self.hp_change).min(member.max_hp).max(0);
-                    member.stress = (member.stress + self.stress_change).min(100).max(0);
+                    member.hp = (member.hp + self.hp_change).clamp(0, member.max_hp);
+                    member.stress = (member.stress + self.stress_change).clamp(0, 100);
                 }
 
                 let mission_state =

@@ -84,15 +84,14 @@ impl MissionSelectState {
     }
 
     pub fn update(&mut self, _roster: &Roster, kingdom: &KingdomState) -> Option<StateTransition> {
-        if is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W) {
-            if self.selected_mission > 0 {
-                self.selected_mission -= 1;
-            }
+        if (is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W)) && self.selected_mission > 0
+        {
+            self.selected_mission -= 1;
         }
-        if is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S) {
-            if self.selected_mission < self.missions.len().saturating_sub(1) {
-                self.selected_mission += 1;
-            }
+        if (is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S))
+            && self.selected_mission < self.missions.len().saturating_sub(1)
+        {
+            self.selected_mission += 1;
         }
 
         for i in 0..self.missions.len().min(9) {

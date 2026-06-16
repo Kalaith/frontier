@@ -68,7 +68,7 @@ pub fn card_tooltip(card_name: &str, description: &str) {
     }
 
     if !definitions.is_empty() {
-        body.push_str("\n");
+        body.push('\n');
         body.push_str(&definitions.join("\n"));
     }
 

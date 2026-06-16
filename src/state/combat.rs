@@ -958,7 +958,7 @@ fn combat_card_rect(i: usize, hand_len: usize) -> (f32, f32, f32, f32) {
     let card_w = 142.0;
     let card_h = 202.0;
     let gap = 14.0;
-    let count = hand_len.max(1).min(5) as f32;
+    let count = hand_len.clamp(1, 5) as f32;
     let total_w = count * card_w + (count - 1.0) * gap;
     let x = (screen_width() - total_w) / 2.0 + (i as f32 * (card_w + gap));
     (x, screen_height() - 244.0, card_w, card_h)

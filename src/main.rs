@@ -3,6 +3,8 @@
 //! Built with Macroquad for rendering, input, and audio.
 //! Game logic is explicitly state-driven; Macroquad remains thin.
 
+#![allow(clippy::enum_variant_names, clippy::too_many_arguments)]
+
 use macroquad::prelude::*;
 
 mod combat;

@@ -74,15 +74,13 @@ impl RecruitState {
         roster: &mut Roster,
     ) -> Option<StateTransition> {
         // Selection
-        if is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W) {
-            if self.selected > 0 {
-                self.selected -= 1;
-            }
+        if (is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W)) && self.selected > 0 {
+            self.selected -= 1;
         }
-        if is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S) {
-            if self.selected < self.recruits.len().saturating_sub(1) {
-                self.selected += 1;
-            }
+        if (is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S))
+            && self.selected < self.recruits.len().saturating_sub(1)
+        {
+            self.selected += 1;
         }
 
         // Number keys

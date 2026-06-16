@@ -174,15 +174,15 @@ impl MissionState {
         // Check if we have path options to choose from
         if !self.available_paths.is_empty() {
             // Path selection with arrow keys
-            if is_key_pressed(KeyCode::Left) || is_key_pressed(KeyCode::A) {
-                if self.selected_path > 0 {
-                    self.selected_path -= 1;
-                }
+            if (is_key_pressed(KeyCode::Left) || is_key_pressed(KeyCode::A))
+                && self.selected_path > 0
+            {
+                self.selected_path -= 1;
             }
-            if is_key_pressed(KeyCode::Right) || is_key_pressed(KeyCode::D) {
-                if self.selected_path < self.available_paths.len().saturating_sub(1) {
-                    self.selected_path += 1;
-                }
+            if (is_key_pressed(KeyCode::Right) || is_key_pressed(KeyCode::D))
+                && self.selected_path < self.available_paths.len().saturating_sub(1)
+            {
+                self.selected_path += 1;
             }
 
             // Number keys for quick selection

@@ -55,17 +55,12 @@ impl BaseTab {
 }
 
 /// Focus area for compatibility with party formation flow.
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Default)]
 pub enum FocusArea {
+    #[default]
     Roster,
     Buildings,
     PartyFormation,
-}
-
-impl Default for FocusArea {
-    fn default() -> Self {
-        FocusArea::Roster
-    }
 }
 
 /// State for managing the kingdom base.
@@ -220,10 +215,8 @@ impl BaseState {
                             return Some(StateTransition::ToRecruit);
                         }
                     }
-                    "Decks" => {
-                        if self.selected_adventurer.is_some() {
-                            self.viewing_deck = true;
-                        }
+                    "Decks" if self.selected_adventurer.is_some() => {
+                        self.viewing_deck = true;
                     }
                     _ => {}
                 }
@@ -517,8 +510,8 @@ impl BaseState {
             draw_ui_text(&adv.name, 592.0, MAIN_Y + 82.0, 26.0, candle_color());
             draw_ui_text(
                 &format!(
-                    "{} - HP {}/{} - Stress {} - {}",
-                    format!("{:?}", adv.class),
+                    "{:?} - HP {}/{} - Stress {} - {}",
+                    adv.class,
                     adv.hp,
                     adv.max_hp,
                     adv.stress,
