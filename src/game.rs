@@ -2,7 +2,7 @@
 //!
 //! Only one GameState is active at a time. Transitions are explicit.
 
-use crate::kingdom::{KingdomState, Roster};
+use crate::kingdom::{KingdomState, Party, Roster};
 use crate::save::{ensure_save_directory, SaveData};
 use crate::state::*;
 use macroquad::prelude::*;
@@ -234,6 +234,27 @@ impl Game {
             let x = screen_width() / 2.0 - 100.0;
             draw_rectangle(x - 10.0, 10.0, 220.0, 35.0, Color::from_rgba(0, 0, 0, 200));
             draw_ui_text(msg, x, 35.0, 24.0, YELLOW);
+        }
+    }
+
+    /// Seed a specific scene for the screenshot harness.
+    pub fn begin_capture_scene(&mut self, scene: &str) {
+        match scene {
+            "recruit" => self.state = GameState::Recruit(RecruitState::new()),
+            "missions" => {
+                let party = self
+                    .roster
+                    .adventurers
+                    .first()
+                    .map(|adv| Party::with_leader(&adv.id))
+                    .unwrap_or_default();
+                self.state =
+                    GameState::MissionSelect(MissionSelectState::for_party(party, &self.roster));
+            }
+            _ => {
+                // Default: the kingdom base screen, same as the boot state.
+                self.state = GameState::Base(BaseState::default());
+            }
         }
     }
 
