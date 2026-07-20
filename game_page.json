@@ -1,0 +1,36 @@
+{
+  "title": "Frontier Kingdom",
+  "wasm": "frontier_kingdom",
+  "status": { "text": "Playable", "class": "playable" },
+  "canvas_rendering": "pixelated",
+  "about": [
+    "A dark card-based expedition RPG inspired by <strong>Darkest Dungeon</strong> and <strong>Slay the Spire</strong>. Lead a band of adventurers into the unknown wilds. Build your kingdom, recruit heroes, and send expeditions into dangerous territories.",
+    "Survive combat through tactical card play, manage your party's stress and health, and unlock new regions as you expand your frontier."
+  ],
+  "controls": [
+    { "key": "Tab", "desc": "Switch focus (Roster <-> Buildings)" },
+    { "key": "Up/Down", "desc": "Navigate menus" },
+    { "key": "Enter", "desc": "Select / Build" },
+    { "key": "Left/Right", "desc": "Select card in combat" },
+    { "key": "Space", "desc": "Advance / Play card" },
+    { "key": "E", "desc": "End turn" },
+    { "key": "F5", "desc": "Save game" },
+    { "key": "F9", "desc": "Load game" }
+  ],
+  "extra_sections": [
+    {
+      "heading": "Features",
+      "body": "<p>- <strong>Turn-based card combat</strong> with energy management and enemy intents<br>- <strong>Status effects</strong> - Vulnerable, Weak, Strengthened, Guarded, Stunned<br>- <strong>Branching missions</strong> - Choose your path through combat, events, and rest<br>- <strong>Kingdom management</strong> - Build structures and recruit adventurers</p>"
+    }
+  ],
+  "details": [
+    { "label": "Genre", "value": "Card RPG" },
+    { "label": "Engine", "value": "Macroquad" },
+    { "label": "Platform", "value": "Browser, Windows" }
+  ],
+  "download": {
+    "href": "frontier_kingdom_windows.zip",
+    "label": "Windows Build"
+  },
+  "repository": "https://github.com/Kalaith/frontier"
+}
