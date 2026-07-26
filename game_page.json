@@ -1,21 +1,47 @@
 {
   "title": "Frontier Kingdom",
   "wasm": "frontier_kingdom",
-  "status": { "text": "Playable", "class": "playable" },
+  "status": {
+    "text": "Playable",
+    "class": "playable"
+  },
   "canvas_rendering": "pixelated",
   "about": [
-    "A dark card-based expedition RPG inspired by <strong>Darkest Dungeon</strong> and <strong>Slay the Spire</strong>. Lead a band of adventurers into the unknown wilds. Build your kingdom, recruit heroes, and send expeditions into dangerous territories.",
-    "Survive combat through tactical card play, manage your party's stress and health, and unlock new regions as you expand your frontier."
+    "Lead brave adventurers into the wild unknown. Build your kingdom, master tactical card combat, and keep your party’s nerve as the darkness closes in."
   ],
   "controls": [
-    { "key": "Tab", "desc": "Switch focus (Roster <-> Buildings)" },
-    { "key": "Up/Down", "desc": "Navigate menus" },
-    { "key": "Enter", "desc": "Select / Build" },
-    { "key": "Left/Right", "desc": "Select card in combat" },
-    { "key": "Space", "desc": "Advance / Play card" },
-    { "key": "E", "desc": "End turn" },
-    { "key": "F5", "desc": "Save game" },
-    { "key": "F9", "desc": "Load game" }
+    {
+      "key": "Tab",
+      "desc": "Switch focus (Roster <-> Buildings)"
+    },
+    {
+      "key": "Up/Down",
+      "desc": "Navigate menus"
+    },
+    {
+      "key": "Enter",
+      "desc": "Select / Build"
+    },
+    {
+      "key": "Left/Right",
+      "desc": "Select card in combat"
+    },
+    {
+      "key": "Space",
+      "desc": "Advance / Play card"
+    },
+    {
+      "key": "E",
+      "desc": "End turn"
+    },
+    {
+      "key": "F5",
+      "desc": "Save game"
+    },
+    {
+      "key": "F9",
+      "desc": "Load game"
+    }
   ],
   "extra_sections": [
     {
@@ -24,9 +50,18 @@
     }
   ],
   "details": [
-    { "label": "Genre", "value": "Card RPG" },
-    { "label": "Engine", "value": "Macroquad" },
-    { "label": "Platform", "value": "Browser, Windows" }
+    {
+      "label": "Genre",
+      "value": "Card RPG"
+    },
+    {
+      "label": "Engine",
+      "value": "Macroquad"
+    },
+    {
+      "label": "Platform",
+      "value": "Browser, Windows"
+    }
   ],
   "download": {
     "href": "frontier_kingdom_windows.zip",
