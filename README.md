@@ -66,19 +66,24 @@ Use the project wrapper to call the shared RustGames publisher:
 
 Generated build outputs belong in ignored directories such as `target/` and `dist/`. Runtime logs and temporary generated image batches are also ignored and can be regenerated when needed.
 
+## Art Direction
+
+The fantasy is a candlelit command table: the player manages a doomed frontier
+charter from a desk covered in maps, blood, debt, and bad weather — never a
+navigable town. Normal text is parchment, grey, and dull brass; bright colour is
+reserved for selection (candle gold), readiness (muted moss), danger (blood
+red), scouting information (cold steel), and trauma (occult violet). Card
+information is rendered by the UI, never baked into artwork.
+
 ## Project Layout
 
-- `src/`: game code and state machines.
-- `assets/`: shipped JSON data and runtime images.
+- `src/main.rs`, `src/game.rs`: Macroquad entry point and the top-level state switch.
+- `src/state/`: one module per screen — `base/`, `mission_select`, `mission`, `event`, `combat/`, `recruit`, `results`. Only one state is active; transitions are explicit.
+- `src/combat/`: units, cards, effects, and the resolver. Cards emit effects; the resolver applies them, so nothing mutates a unit directly.
+- `src/kingdom/`, `src/missions/`: roster, party, buildings, unlocks, regions, and mission templates.
+- `src/ui/`, `src/data/`, `src/save/`: immediate-mode drawing helpers, JSON loaders, and the single versioned `SaveData` struct.
+- `assets/`: cards, enemies, missions, regions, prompt metadata, and runtime images. Balance and content live here, not in Rust.
 - `gdd.md`: game design notes.
-- `tech_spec.md`: architecture notes.
-- `ui_redesign_plan.md`: command-table UI redesign plan and priorities.
-- `roadmap.md`: completed roadmap checklist.
-- `generate_assets.ps1`, `comfyui-*.ps1`: optional local asset-generation tooling.
-# Practical Future Improvements
-
-- Add mission-state tests for selection, launch, resolution, rewards, repeat attempts, and failure branches.
-- Extract recruit, event, and combat reward math into pure evaluators with fixtures for low-resource and over-capacity cases.
-- Add campaign scenario fixtures covering base upgrades, mission chains, events, and result-screen progression.
-- Consolidate state-screen navigation so base, combat, event, recruit, and results screens share one transition policy.
+- `TODO.md`: open work.
+- `generate_assets.ps1`, `comfyui-*.ps1`, `COMFYUI-curl-examples.md`: optional local asset-generation tooling.
 
